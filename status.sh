@@ -112,12 +112,12 @@ Installation_dependency() {
   mode=$1
   if [[ ${release} == "centos" ]]; then
     yum makecache
-    yum -y install unzip
+    yum -y install unzip gcc gcc-c++ make libcurl-devel
     yum -y install python3 >/dev/null 2>&1 || yum -y install python
     [[ ${mode} == "server" ]] && yum -y groupinstall "Development Tools"
   elif [[ ${release} == "debian" ]]; then
     apt -y update
-    apt -y install unzip
+    apt -y install unzip gcc g++ make libcurl4-openssl-dev
     apt -y install python3 >/dev/null 2>&1 || apt -y install python
     [[ ${mode} == "server" ]] && apt -y install build-essential
   elif [[ ${release} == "archlinux" ]]; then
