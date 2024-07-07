@@ -24,6 +24,17 @@
 
 # 部署：
 
+## status.sh
+
+- 脚本说明: ServerStatus 一键安装管理脚本
+- 系统支持: CentOS6+ / Debian6+ / Ubuntu14+
+
+#### 下载安装:
+
+```bash
+wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/status.sh && chmod +x status.sh && bash status.sh
+```
+
 【服务端】：
 ```bash
 
