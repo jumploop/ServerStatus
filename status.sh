@@ -67,6 +67,7 @@ Download_Server_Status_server() {
   if [[ -e "../sergate" ]]; then
     echo -e "${Info} use available ServerStatus 服务端"
     mv ../sergate .
+    chmod +x sergate
   else
     make
     [[ ! -e "sergate" ]] && echo -e "${Error} ServerStatus 服务端编译失败 !" && cd "${file_1}" && rm -rf "/tmp/ServerStatus-master" && exit 1
