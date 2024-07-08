@@ -58,7 +58,7 @@ check_installed_client_status() {
 
 Download_Server_Status_server() {
   cd "/tmp" || exit 1
-  wget -N --no-check-certificate https://github.com/cppla/ServerStatus/archive/refs/heads/master.zip
+  wget -N --no-check-certificate https://github.com/jumploop/ServerStatus/archive/refs/heads/master.zip
   [[ ! -e "master.zip" ]] && echo -e "${Error} ServerStatus 服务端下载失败 !" && exit 1
   unzip master.zip
   rm -rf master.zip
