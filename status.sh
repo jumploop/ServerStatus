@@ -64,12 +64,12 @@ Download_Server_Status_server() {
   rm -rf master.zip
   [[ ! -d "/tmp/ServerStatus-master" ]] && echo -e "${Error} ServerStatus 服务端解压失败 !" && exit 1
   cd "/tmp/ServerStatus-master/server" || exit 1
-  make
-  # [[ ! -e "sergate" ]] && echo -e "${Error} ServerStatus 服务端编译失败 !" && cd "${file_1}" && rm -rf "/tmp/ServerStatus-master" && exit 1
-  if [[ ! -e "sergate" ]]; then
-    echo -e "${Error} ServerStatus 服务端编译失败 !"
+  if [[ -e "../sergate" ]]; then
     echo -e "${Info} use available ServerStatus 服务端"
     mv ../sergate .
+  else
+    make
+    [[ ! -e "sergate" ]] && echo -e "${Error} ServerStatus 服务端编译失败 !" && cd "${file_1}" && rm -rf "/tmp/ServerStatus-master" && exit 1
   fi
   cd "${file_1}" || exit 1
   mkdir -p "${server_file}"
