@@ -64,9 +64,10 @@ Download_Server_Status_server() {
   rm -rf master.zip
   [[ ! -d "/tmp/ServerStatus-master" ]] && echo -e "${Error} ServerStatus 服务端解压失败 !" && exit 1
   cd "/tmp/ServerStatus-master/server" || exit 1
-  if [[ -e "../sergate" ]]; then
+  sergate_file="../sergate_${release}"
+  if [[ -e "${sergate_file}" ]]; then
     echo -e "${Info} use available ServerStatus 服务端"
-    mv ../sergate .
+    mv "${sergate_file}" sergate
     chmod +x sergate
   else
     make
@@ -118,14 +119,14 @@ Installation_dependency() {
   mode=$1
   if [[ ${release} == "centos" ]]; then
     yum makecache
-    yum -y install unzip gcc gcc-c++ make libcurl-devel
+    yum -y install unzip
     yum -y install python3 >/dev/null 2>&1 || yum -y install python
-    [[ ${mode} == "server" ]] && yum -y groupinstall "Development Tools"
+    [[ ${mode} == "server" ]] && yum -y groupinstall "Development Tools" && yum -y install gcc gcc-c++ make libcurl-devel
   elif [[ ${release} == "debian" ]]; then
     apt -y update
-    apt -y install unzip gcc g++ make libcurl4-openssl-dev
+    apt -y install unzip
     apt -y install python3 >/dev/null 2>&1 || apt -y install python
-    [[ ${mode} == "server" ]] && apt -y install build-essential
+    [[ ${mode} == "server" ]] && apt -y install build-essential gcc g++ make libcurl4-openssl-dev
   elif [[ ${release} == "archlinux" ]]; then
     pacman -Sy python python-pip unzip --noconfirm
     [[ ${mode} == "server" ]] && pacman -Sy base-devel --noconfirm
