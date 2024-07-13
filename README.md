@@ -205,7 +205,7 @@ Agent机器安装脚本改为systemd， 支持开机自启
 其中，Bot token可以通过@BotFather创建机器人获取， Chat id可以通过@getuserID获取。
 IP_PORT需要改成你自己的探针web服务地址。ip+端口的形式,eg：ip:port
 
-mkdir sss && cd sss && wget --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/sss.sh && chmod +x ./sss.sh && sudo ./sss.sh YOUR_TG_CHAT_ID YOUR_TG_BOT_TOKEN IP_PORT
+mkdir sss && cd sss && wget --no-check-certificate -O sss.sh https://raw.githubusercontent.com/jumploop/ServerStatus/master/sss.sh && chmod +x ./sss.sh && sudo ./sss.sh YOUR_TG_CHAT_ID YOUR_TG_BOT_TOKEN IP_PORT
 
 安装成功后，web服务地址：http://ip:8081
 
