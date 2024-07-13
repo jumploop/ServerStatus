@@ -59,6 +59,9 @@ install_docker() {
         systemctl enable docker.service
         systemctl start docker.service
         echo -e "${green}Docker${plain} 安装成功"
+    else
+        echo -e "${green}Docker${plain} 已安装"
+
     fi
 
     command -v docker-compose >/dev/null 2>&1
@@ -71,6 +74,8 @@ install_docker() {
         fi
         chmod +x /usr/local/bin/docker-compose
         echo -e "${green}Docker Compose${plain} 安装成功"
+    else
+        echo -e "${green}Docker Compose${plain} 已安装"
     fi
 }
 
