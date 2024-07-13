@@ -117,7 +117,7 @@ install_dashboard() {
     wget --no-check-certificate -O bot-Dockerfile ${GITHUB_RAW_URL}/plugin/bot-Dockerfile >/dev/null 2>&1
     wget --no-check-certificate -O bot.py ${GITHUB_RAW_URL}/plugin/bot.py >/dev/null 2>&1
     wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
-    echo '{"servers":[]}' >config.json
+    [[ ! -e config.json ]] && echo '{"servers":[]}' >config.json
 
     modify_bot_config "$@"
 
