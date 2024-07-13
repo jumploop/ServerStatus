@@ -92,7 +92,7 @@ modify_bot_config() {
     echo -e "server port: $server_port\n"
     cat >port.json <<-EOF
 {
-    "server_port": ${server_port},
+    "server_port": ${server_port}
 }
 EOF
 
