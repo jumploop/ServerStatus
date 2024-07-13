@@ -104,11 +104,11 @@ install_dashboard() {
 
     echo -e "> 安装面板"
 
-    wget --no-check-certificate ${GITHUB_RAW_URL}/plugin/docker-compose.yml >/dev/null 2>&1
-    wget --no-check-certificate ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
-    wget --no-check-certificate ${GITHUB_RAW_URL}/plugin/bot-Dockerfile >/dev/null 2>&1
-    wget --no-check-certificate ${GITHUB_RAW_URL}/plugin/bot.py >/dev/null 2>&1
-    wget --no-check-certificate ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
+    wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/plugin/docker-compose.yml >/dev/null 2>&1
+    wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
+    wget --no-check-certificate -O bot-Dockerfile ${GITHUB_RAW_URL}/plugin/bot-Dockerfile >/dev/null 2>&1
+    wget --no-check-certificate -O bot.py ${GITHUB_RAW_URL}/plugin/bot.py >/dev/null 2>&1
+    wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
     echo '{"servers":[]}' >config.json
 
     modify_bot_config "$@"
