@@ -11,12 +11,14 @@ import requests
 import random, string
 import subprocess
 import uuid
+import argparse
+import shlex
 
 CONFIG_FILE = "config.json"
 PORT_FILE = "port.json"
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/jumploop/ServerStatus/master"
 IP_URL = "https://api.ipify.org"
-
+RESTART_SSS = "docker-compose restart"
 jjs = {}
 ip = ""
 
@@ -44,7 +46,7 @@ def getIP():
 
 
 def restartSSS():
-    cmd = ["docker-compose", "restart"]
+    cmd = shlex.split(RESTART_SSS)
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     for line in p.stdout:
         print(line)
@@ -77,10 +79,8 @@ def getPasswd():
 
 def saveJJs():
     jjs['servers'] = sorted(jjs['servers'], key=lambda d: d['name'])
-
-    file = open(CONFIG_FILE, "w")
-    file.write(json.dumps(jjs))
-    file.close()
+    with open(CONFIG_FILE, "w") as file:
+        file.write(json.dumps(jjs))
 
 
 def _show():
@@ -275,12 +275,17 @@ def cmd():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='管理探针服务端配置')
+    parser.add_argument('--config', default=CONFIG_FILE, help='Server config file path')
+    parser.add_argument('--action', default=restartSSS, help='Server restart method')
+    args = parser.parse_args()
+    CONFIG_FILE = args.config
+    RESTART_SSS = args.action
     file_exists = os.path.exists(CONFIG_FILE)
     if file_exists == False:
         print("请在当前目录创建config.json!")
         exit()
 
-    file = open(CONFIG_FILE, "r")
-    jjs = json.load(file)
-    file.close()
+    with open(CONFIG_FILE, "r") as f:
+        jjs = json.load(f)
     cmd()
