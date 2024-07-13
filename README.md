@@ -188,6 +188,26 @@ web-dir参数为上一步设置的网站根目录，务必修改成自己网站�
 `extra scene (run web/ssview.py)`
 ![Shell View](https://dl.cpp.la/Archive/serverstatus-shell.png?version=2023)
 
+## 集成新功能
+1. https://github.com/lidalao/ServerStatus
+
+#### 介绍
+项目基于cppla版本ServerStatus， 增加如下功能：
+
+更方便的节点管理, 支持增删改查
+上下线通知（telegram）
+Agent机器安装脚本改为systemd， 支持开机自启
+由于未改动cppla版的任何代码，所以，我愿意把这个项目称为ServerStatus的小插件, 理论上它可以为任何版本的ServerStatus服务
+
+#### 安装
+在服务端复制以下命令，一键到底。请记得替换成你自己的YOUR_TG_CHAT_ID，YOUR_TG_BOT_TOKEN，IP_PORT需要改成你自己的探针web服务地址。
+
+其中，Bot token可以通过@BotFather创建机器人获取， Chat id可以通过@getuserID获取。
+IP_PORT需要改成你自己的探针web服务地址。ip+端口的形式,eg：ip:port
+
+mkdir sss && cd sss && wget --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/sss.sh && chmod +x ./sss.sh && sudo ./sss.sh YOUR_TG_CHAT_ID YOUR_TG_BOT_TOKEN IP_PORT
+
+安装成功后，web服务地址：http://ip:8081
 
 # Make Better        
 
@@ -195,6 +215,7 @@ web-dir参数为上一步设置的网站根目录，务必修改成自己网站�
 * mojeda: https://github.com/mojeda 
 * mojeda's ServerStatus: https://github.com/mojeda/ServerStatus
 * BlueVM's project: http://www.lowendtalk.com/discussion/comment/169690#Comment_169690
+* lidalao：https://github.com/lidalao/ServerStatus
 
 # Jetbrains    
 

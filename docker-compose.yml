@@ -16,7 +16,7 @@ services:
       serverstatus-network:
         ipv4_address: 172.23.0.2
     volumes:
-      - ./server/config.json:/ServerStatus/server/config.json 
+      - ./server/config.json:/ServerStatus/server/config.json
       - ./web/json:/usr/share/nginx/html/json
     ports:
       - 35601:35601
