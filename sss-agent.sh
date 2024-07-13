@@ -57,11 +57,15 @@ modify_agent_config() {
         sss_host=$1
         sss_user=$2
         sss_pass=$3
+        tmp_port=$4
+        sss_port=${tmp_port:-35601}
+
     fi
 
     sed -i "s/sss_host/${sss_host}/" ${SSS_AGENT_SERVICE}
     sed -i "s/sss_user/${sss_user}/" ${SSS_AGENT_SERVICE}
     sed -i "s/sss_pass/${sss_pass}/" ${SSS_AGENT_SERVICE}
+    sed -i "s/sss_port/${sss_port}/" ${SSS_AGENT_SERVICE}
 
     echo -e "Agent配置 ${green}修改成功，请稍等重启生效${plain}"
 
@@ -124,7 +128,7 @@ show_menu() {
 
 pre_check
 
-if [[ $# == 3 ]]; then
+if [[ $# -ge 3 ]]; then
     uninstall_agent
     install_agent "$@"
 else

@@ -8,30 +8,40 @@ import json
 import sys
 import os
 import requests
-import random,string
+import random, string
 import subprocess
 import uuid
 
 CONFIG_FILE = "config.json"
+PORT_FILE = "port.json"
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/jumploop/ServerStatus/master"
 IP_URL = "https://api.ipify.org"
 
 jjs = {}
 ip = ""
 
+
 def how2agent(user, passwd):
+    with open(PORT_FILE, 'r') as file:
+        pjs = json.load(file)
+    port = pjs.get('server_port')
     print('```')
     print("\n")
-    print('curl -L {0}/sss-agent.sh  -o sss-agent.sh && chmod +x sss-agent.sh && sudo ./sss-agent.sh {1} {2} {3}'.format(GITHUB_RAW_URL, getIP(), user, passwd))
+    print(
+        'curl -L {0}/sss-agent.sh  -o sss-agent.sh && chmod +x sss-agent.sh && sudo ./sss-agent.sh {1} {2} {3} {4}'.format(
+            GITHUB_RAW_URL, getIP(), user, passwd, port
+        )
+    )
     print("\n")
     print('```')
 
 
 def getIP():
     global ip
-    if ip == "": 
+    if ip == "":
         ip = requests.get(IP_URL).content.decode('utf8')
     return ip
+
 
 def restartSSS():
     cmd = ["docker-compose", "restart"]
@@ -40,35 +50,38 @@ def restartSSS():
         print(line)
     p.wait()
 
-def getPasswd():
-	mima = [] 
-	sz = '123456789'
-	xzm = 'abcdefghijklmnopqrstuvwxyz'
-	dzm = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-	# tzf = '~!#@$%^&*?'
-	# all = sz + xzm + dzm + tzf
-	all = sz + xzm + dzm 
-	m1 = random.choice(sz)
 
-	m2 = random.choice(xzm)
-	m3 = random.choice(dzm)
-	# m4 = random.choice(tzf)
-	m5 = "".join(random.sample(all,12))
-	mima.append(m1)
-	mima.append(m2)
-	mima.append(m3)
-	# mima.append(m4)
-	mima.append(m5)
-	random.shuffle(mima)
-	a = "".join(mima)
-	return a
+def getPasswd():
+    mima = []
+    sz = '123456789'
+    xzm = 'abcdefghijklmnopqrstuvwxyz'
+    dzm = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    # tzf = '~!#@$%^&*?'
+    # all = sz + xzm + dzm + tzf
+    all = sz + xzm + dzm
+    m1 = random.choice(sz)
+
+    m2 = random.choice(xzm)
+    m3 = random.choice(dzm)
+    # m4 = random.choice(tzf)
+    m5 = "".join(random.sample(all, 12))
+    mima.append(m1)
+    mima.append(m2)
+    mima.append(m3)
+    # mima.append(m4)
+    mima.append(m5)
+    random.shuffle(mima)
+    a = "".join(mima)
+    return a
+
 
 def saveJJs():
-    jjs['servers'] = sorted(jjs['servers'], key=lambda d: d['name']) 
+    jjs['servers'] = sorted(jjs['servers'], key=lambda d: d['name'])
 
-    file = open(CONFIG_FILE,"w")
+    file = open(CONFIG_FILE, "w")
     file.write(json.dumps(jjs))
     file.close()
+
 
 def _show():
     print("---你的jjs如下---")
@@ -78,40 +91,51 @@ def _show():
         print("\n")
         print("-----------------")
         return
-    
+
     for idx, item in enumerate(jjs['servers']):
-        print(str(idx) + ". name: " + item['name'] + ", loc: "+ item['location'] + ", type: " + item['type']) 
-    
+        print(
+            str(idx)
+            + ". name: "
+            + item['name']
+            + ", loc: "
+            + item['location']
+            + ", type: "
+            + item['type']
+        )
+
     print("\n")
     print("-----------------")
+
 
 def show():
     _show()
     _back()
+
 
 def _back():
     print(">>>按任意键返回上级菜单")
     input()
     cmd()
 
+
 def add():
     print('>>>请输入jj名字：')
-    jjname =input()    
+    jjname = input()
     if jjname == "":
         print("输入有误")
         _back()
         return
 
     print('>>>请输入{0}位置：[{1}]'.format(jjname, "us"))
-    jjloc =input()
+    jjloc = input()
     if jjloc == "":
         jjloc = "us"
 
     print('>>>请输入{0}类型：[{1}]'.format(jjname, "kvm"))
-    jjtype =input()
+    jjtype = input()
     if jjtype == "":
-        jjtype = "kvm"  
-     
+        jjtype = "kvm"
+
     item = {}
     item['monthstart'] = "1"
     item['location'] = jjloc
@@ -132,6 +156,7 @@ def add():
     how2agent(item['username'], item['password'])
     _back()
 
+
 def update():
     print("请输入需要更新的jj标号：")
     idx = input()
@@ -139,31 +164,37 @@ def update():
         print('无效输入,退出')
         _back()
         return
-    
+
     if len(jjs['servers']) <= int(idx):
         print('输入无效')
         _back()
         return
 
     jj = jjs['servers'][int(idx)]
-    print('--- 面板更换ip时，请复制以下命令在机器{0}安装agent服务 ---'.format(jj['name']))
+    print(
+        '--- 面板更换ip时，请复制以下命令在机器{0}安装agent服务 ---'.format(jj['name'])
+    )
     how2agent(jj['username'], jj['password'])
 
-    print('>>>请输入{0}新名字：[{1}] *中括号内为原值，按回车表示不做修改*'.format(jj['name'], jj['name']))
+    print(
+        '>>>请输入{0}新名字：[{1}] *中括号内为原值，按回车表示不做修改*'.format(
+            jj['name'], jj['name']
+        )
+    )
     jjname = input()
     if "" != jjname:
         jjs['servers'][int(idx)]['name'] = jjname
-    
+
     print('>>>请输入{0}新位置：[{1}]'.format(jj['name'], jj['location']))
     jjloc = input()
     if "" != jjloc:
         jjs['servers'][int(idx)]['location'] = jjloc
-    
+
     print('>>>请输入{0}新类型：[{1}]'.format(jj['name'], jj['type']))
     jjtype = input()
     if "" != jjtype:
         jjs['servers'][int(idx)]['type'] = jjtype
-    
+
     print('>>>请输入{0}新的月流量起始日：[{1}]'.format(jj['name'], jj['monthstart']))
     jjms = input()
     if "" != jjms:
@@ -180,21 +211,26 @@ def update():
     _show()
     _back()
 
+
 def remove():
     print(">>>请输入需要删除的jj标号：")
-    idx =input()
+    idx = input()
     if not idx.isnumeric():
         print('无效输入,退出')
         _back()
         return
-    
+
     if len(jjs['servers']) <= int(idx):
         print('输入无效')
         _back()
         return
-    
-    print('>>>请确认你需要删除的节点：{0}？ [Y/n]'.format(jjs['servers'][int(idx)]['name'])) 
-    yesOrNo =  input()
+
+    print(
+        '>>>请确认你需要删除的节点：{0}？ [Y/n]'.format(
+            jjs['servers'][int(idx)]['name']
+        )
+    )
+    yesOrNo = input()
     if yesOrNo == "n" or yesOrNo == "N":
         print("取消删除")
         _back()
@@ -207,7 +243,8 @@ def remove():
     print("删除成功!")
     _show()
     _back()
-    
+
+
 def cmd():
     print("\n")
     print('- - - 欢迎使用最简洁的探针: Server Status - - -')
@@ -221,13 +258,13 @@ def cmd():
     if not x.isnumeric():
         print('无效输入, 退出')
         return
-    
+
     if 1 == int(x):
         show()
     elif 2 == int(x):
         add()
     elif 3 == int(x):
-        remove() 
+        remove()
     elif 4 == int(x):
         update()
     elif 0 == int(x):
@@ -239,11 +276,11 @@ def cmd():
 
 if __name__ == '__main__':
     file_exists = os.path.exists(CONFIG_FILE)
-    if file_exists == False: 
+    if file_exists == False:
         print("请在当前目录创建config.json!")
         exit()
-    
-    file = open(CONFIG_FILE,"r")
+
+    file = open(CONFIG_FILE, "r")
     jjs = json.load(file)
     file.close()
     cmd()

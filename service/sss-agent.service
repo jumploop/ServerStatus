@@ -14,7 +14,7 @@ Type=simple
 User=root
 Group=root
 WorkingDirectory=/opt/sss/agent/
-ExecStart=/usr/bin/python3 /opt/sss/agent/client-linux.py SERVER=sss_host USER=sss_user PASSWORD=sss_pass
+ExecStart=/usr/bin/python3 /opt/sss/agent/client-linux.py SERVER=sss_host USER=sss_user PASSWORD=sss_pass PORT=sss_port
 Restart=always
 #Environment=DEBUG=true
 
