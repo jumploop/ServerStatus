@@ -276,7 +276,7 @@ def cmd():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='管理探针服务端配置')
     parser.add_argument('--config', default=CONFIG_FILE, help='Server config file path')
-    parser.add_argument('--action', default=restartSSS, help='Server restart method')
+    parser.add_argument('--action', default=RESTART_SSS, help='Server restart method')
     args = parser.parse_args()
     CONFIG_FILE = args.config
     RESTART_SSS = args.action
