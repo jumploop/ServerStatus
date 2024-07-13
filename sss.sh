@@ -50,7 +50,7 @@ install_docker() {
     if [[ $? != 0 ]]; then
         install_base
         echo -e "正在安装 Docker"
-        bash <(curl -sL https://get.docker.com) >/dev/null 2>&1
+        bash <(curl -sLo https://get.docker.com) >/dev/null 2>&1
         if [[ $? != 0 ]]; then
             echo -e "${red}下载Docker失败${plain}"
             exit 1
@@ -102,7 +102,7 @@ install_dashboard() {
     wget --no-check-certificate ${GITHUB_RAW_URL}/plugin/bot-Dockerfile >/dev/null 2>&1
     wget --no-check-certificate ${GITHUB_RAW_URL}/plugin/bot.py >/dev/null 2>&1
     wget --no-check-certificate ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
-    echo '{"servers":[]}' > config.json
+    echo '{"servers":[]}' >config.json
 
     modify_bot_config "$@"
 
