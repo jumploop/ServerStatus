@@ -15,7 +15,7 @@ services:
   bot:
     build:
       context: .
-      dockerfile: bot-Dockerfile
+      dockerfile: Dockerfile-telegram
     container_name: bot4sss
     restart: unless-stopped
     environment:

@@ -99,7 +99,7 @@ EOF
     sed -i "s/tg_chat_id/${tg_chat_id}/" docker-compose.yml
     sed -i "s/tg_bot_token/${tg_bot_token}/" docker-compose.yml
     sed -i "s/35601/${server_port}/" docker-compose.yml
-    sed -i "s/sss/${sss_adder}/" bot.py
+    sed -i "s/sss/${sss_adder}/" bot-telegram.py
 }
 
 install_dashboard() {
@@ -114,10 +114,10 @@ install_dashboard() {
 
     wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/plugin/docker-compose.yml >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
-    wget --no-check-certificate -O bot-Dockerfile ${GITHUB_RAW_URL}/plugin/bot-Dockerfile >/dev/null 2>&1
-    wget --no-check-certificate -O bot.py ${GITHUB_RAW_URL}/plugin/bot.py >/dev/null 2>&1
+    wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/plugin/Dockerfile-telegram >/dev/null 2>&1
+    wget --no-check-certificate -O bot-telegram.py ${GITHUB_RAW_URL}/plugin/bot-telegram.py >/dev/null 2>&1
     wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
-    [[ ! -e config.json ]] && echo '{"servers":[]}' >config.json
+    [[ ! -e config.json ]] && wget --no-check-certificate -O config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1
 
     modify_bot_config "$@"
 
