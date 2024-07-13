@@ -46,8 +46,7 @@ def getIP():
 
 
 def restartSSS():
-    cmd = shlex.split(RESTART_SSS)
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    p = subprocess.Popen(RESTART_SSS, stdout=subprocess.PIPE, shell=True)
     for line in p.stdout:
         print(line)
     p.wait()
