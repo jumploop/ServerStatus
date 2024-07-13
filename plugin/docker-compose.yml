@@ -1,5 +1,8 @@
 services:
   sss:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: cppla/serverstatus:latest
     container_name: sss
     restart: unless-stopped
