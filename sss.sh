@@ -89,19 +89,16 @@ modify_bot_config() {
     tg_bot_token=$2
     sss_adder=$3
     server_port=$(python -c 'import random;print(random.randint(10000, 65536))')
-    web_port=$(python -c 'import random;print(random.randint(10000, 65536))')
-    echo -e "server port: $server_port\nweb port: $web_port"
+    echo -e "server port: $server_port\n"
     cat >port.json <<-EOF
 {
     "server_port": ${server_port},
-    "web_port": $web_port},
 }
 EOF
 
     sed -i "s/tg_chat_id/${tg_chat_id}/" docker-compose.yml
     sed -i "s/tg_bot_token/${tg_bot_token}/" docker-compose.yml
     sed -i "s/35601/${server_port}/" docker-compose.yml
-    sed -i "s/8081/${web_port}/" docker-compose.yml
     sed -i "s/sss/${sss_adder}/" bot.py
 }
 
