@@ -49,7 +49,7 @@ install_docker() {
     if [[ $? != 0 ]]; then
         install_base
         echo -e "正在安装 Docker"
-        bash <(curl -Lso- https://get.docker.com) >/dev/null 2>&1
+        bash <(curl -sL https://get.docker.com) >/dev/null 2>&1
         if [[ $? != 0 ]]; then
             echo -e "${red}下载Docker失败${plain}"
             exit 1
