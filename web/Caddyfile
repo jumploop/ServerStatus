@@ -1,0 +1,10 @@
+http://:80 {
+  root * /usr/local/ServerStatus/web
+  encode gzip
+  file_server
+}
+https://:443 {
+  root * /usr/local/ServerStatus/web
+  encode gzip
+  file_server
+}
