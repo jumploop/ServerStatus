@@ -12,7 +12,6 @@ import random, string
 import subprocess
 import uuid
 import argparse
-import shlex
 
 CONFIG_FILE = "config.json"
 PORT_FILE = "port.json"
@@ -50,6 +49,12 @@ def restartSSS():
     for line in p.stdout:
         print(line)
     p.wait()
+
+
+def is_number(value):
+    if hasattr(value, 'isnumeric'):
+        return value.isnumeric()
+    return value.isdigit()
 
 
 def getPasswd():
@@ -159,7 +164,7 @@ def add():
 def update():
     print("请输入需要更新的jj标号：")
     idx = input()
-    if not idx.isnumeric():
+    if not is_number(idx):
         print('无效输入,退出')
         _back()
         return
@@ -214,7 +219,7 @@ def update():
 def remove():
     print(">>>请输入需要删除的jj标号：")
     idx = input()
-    if not idx.isnumeric():
+    if not is_number(idx):
         print('无效输入,退出')
         _back()
         return
@@ -254,7 +259,7 @@ def cmd():
 
     print('>>>请输入操作标号：1.查看, 2.添加, 3.删除, 4.更新, 0.退出')
     x = input()
-    if not x.isnumeric():
+    if not is_number(x):
         print('无效输入, 退出')
         return
 
