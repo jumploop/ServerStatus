@@ -20,12 +20,19 @@ IP_URL = "https://api.ipify.org"
 RESTART_SSS = "docker-compose restart"
 jjs = {}
 ip = ""
+PORT = 35601
+
+
+def get_server_port():
+    if os.path.isfile(PORT_FILE):
+        with open(PORT_FILE, 'r') as file:
+            pjs = json.load(file)
+        return pjs.get('server_port')
+    return PORT
 
 
 def how2agent(user, passwd):
-    with open(PORT_FILE, 'r') as file:
-        pjs = json.load(file)
-    port = pjs.get('server_port')
+    port = get_server_port()
     print('```')
     print("\n")
     print(
