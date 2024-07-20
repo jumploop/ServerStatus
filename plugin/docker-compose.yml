@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: cppla/serverstatus:latest
+    image: looprt/serverstatus_server:latest
     container_name: sss
     restart: unless-stopped
     volumes:
