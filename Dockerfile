@@ -1,7 +1,7 @@
 # The Dockerfile for build localhost source, not git repo
 FROM debian:buster AS builder
 
-MAINTAINER cppla https://cpp.la
+LABEL maintainer="cppla https://cpp.la"
 
 RUN apt-get update -y && apt-get -y install gcc g++ make libcurl4-openssl-dev
 
