@@ -3,7 +3,7 @@ Description=ServerStatus-Server
 After=network.target
 [Service]
 EnvironmentFile=-/usr/local/ServerStatus/server/config.conf
-ExecStart=/usr/local/ServerStatus/server/sergate --port $PORT --config=/usr/local/ServerStatus/server/config.json --web-dir=/usr/local/ServerStatus/web
+ExecStart=/usr/local/ServerStatus/server/sergate --port=$PORT --config=/usr/local/ServerStatus/server/config.json --web-dir=/usr/local/ServerStatus/web
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 [Install]
