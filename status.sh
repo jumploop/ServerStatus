@@ -154,7 +154,7 @@ EOF
 
 Write_server_config_conf() {
   cat >${server_conf_1} <<-EOF
-PORT=${server_port_s}
+PORT = ${server_port_s}
 EOF
 }
 
@@ -172,7 +172,7 @@ Read_config_server() {
     Write_server_config_conf
     server_port="35601"
   else
-    server_port="$(grep "PORT=" ${server_conf_1} | awk '{print $2}')"
+    server_port="$(grep "PORT = " ${server_conf_1} | awk '{print $3}')"
   fi
 }
 
