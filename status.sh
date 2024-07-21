@@ -595,7 +595,7 @@ Set_ServerStatus_client() {
 
 Modify_config_client() {
   sed -i '0,/SERVER = "'"${client_server}"'"/s//SERVER = "'"${server_s}"'"/' "${client_file}/client-linux.py"
-  sed -i '0,/PORT = ${client_port}/s//PORT = ${server_port_s}/' "${client_file}/client-linux.py"
+  sed -i '0,/PORT = '${client_port}'/s//PORT = '${server_port_s}'/' "${client_file}/client-linux.py"
   sed -i '0,/USER = "'"${client_user}"'"/s//USER = "'"${username_s}"'"/' "${client_file}/client-linux.py"
   sed -i '0,/PASSWORD = "'"${client_password}"'"/s//PASSWORD = "'"${password_s}"'"/' "${client_file}/client-linux.py"
 }
