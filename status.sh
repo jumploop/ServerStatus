@@ -20,7 +20,7 @@ service="/usr/lib/systemd/system"
 jq_file="${file}/jq"
 [[ ! -e ${jq_file} ]] && jq_file="/usr/bin/jq"
 
-github_prefix="https://raw.githubusercontent.com/cppla/ServerStatus/master"
+github_prefix="https://raw.githubusercontent.com/jumploop/ServerStatus/master"
 
 NAME="ServerStatus"
 Green_font_prefix="\033[32m" && Red_font_prefix="\033[31m" && Red_background_prefix="\033[41;37m" && Font_color_suffix="\033[0m"
@@ -154,7 +154,7 @@ EOF
 
 Write_server_config_conf() {
   cat >${server_conf_1} <<-EOF
-PORT = ${server_port_s}
+PORT="--port=${server_port_s}"
 EOF
 }
 
@@ -172,7 +172,7 @@ Read_config_server() {
     Write_server_config_conf
     server_port="35601"
   else
-    server_port="$(grep "PORT = " ${server_conf_1} | awk '{print $3}')"
+    server_port="$(grep "PORT=" ${server_conf_1} | awk -F '"' '{print $2}' | awk -F "=" '{print $2}')"
   fi
 }
 
