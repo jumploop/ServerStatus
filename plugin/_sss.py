@@ -13,6 +13,9 @@ import subprocess
 import uuid
 import argparse
 
+if sys.version_info[0] < 3:
+    input = raw_input
+
 CONFIG_FILE = "config.json"
 PORT_FILE = "port.json"
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/jumploop/ServerStatus/master"
