@@ -12,9 +12,8 @@ import random, string
 import subprocess
 import uuid
 import argparse
+from six.moves import input
 
-if sys.version_info[0] < 3:
-    input = raw_input
 
 CONFIG_FILE = "config.json"
 PORT_FILE = "port.json"
@@ -45,6 +44,22 @@ def how2agent(user, passwd):
     )
     print("\n")
     print('```')
+
+
+def unicode_convert(input_data, encode="utf-8"):
+    """
+    python2 json.loads会默认将字符串解析成unicode，因此需要自行转换为想要的格式
+    """
+    if isinstance(input_data, dict):
+        return {
+            unicode_convert(key, encode): unicode_convert(value)
+            for key, value in input_data.items()
+        }
+    if isinstance(input_data, list):
+        return [unicode_convert(element, encode) for element in input_data]
+    if isinstance(input_data, unicode):
+        return input_data.encode(encode)
+    return input_data
 
 
 def getIP():
@@ -94,7 +109,7 @@ def getPasswd():
 def saveJJs():
     jjs['servers'] = sorted(jjs['servers'], key=lambda d: d['name'])
     with open(CONFIG_FILE, "w") as file:
-        file.write(json.dumps(jjs))
+        file.write(json.dumps(jjs, ensure_ascii=False, indent=2, sort_keys=True))
 
 
 def _show():
@@ -305,5 +320,5 @@ if __name__ == '__main__':
         exit()
 
     with open(CONFIG_FILE, "r") as f:
-        jjs = json.load(f)
+        jjs = unicode_convert(json.load(f))
     cmd()
