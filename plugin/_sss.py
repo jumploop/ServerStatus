@@ -28,7 +28,7 @@ PORT = 35601
 def get_server_port():
     if os.path.isfile(PORT_FILE):
         with open(PORT_FILE, 'r') as file:
-            pjs = json.load(file)
+            pjs = unicode_convert(json.load(file))
         return pjs.get('server_port')
     return PORT
 
@@ -46,20 +46,27 @@ def how2agent(user, passwd):
     print('```')
 
 
-def unicode_convert(input_data, encode="utf-8"):
+def unicode_convert(data, encode="utf-8"):
     """
     python2 json.loads会默认将字符串解析成unicode，因此需要自行转换为想要的格式
+    https://stackoverflow.com/questions/956867/how-to-get-string-objects-instead-of-unicode-from-json
     """
-    if isinstance(input_data, dict):
+    if isinstance(data, str):
+        return data
+    if isinstance(data, dict):
         return {
             unicode_convert(key, encode): unicode_convert(value)
-            for key, value in input_data.items()
+            for key, value in data.items()
         }
-    if isinstance(input_data, list):
-        return [unicode_convert(element, encode) for element in input_data]
-    if isinstance(input_data, unicode):
-        return input_data.encode(encode)
-    return input_data
+    if isinstance(data, list):
+        return [unicode_convert(element, encode) for element in data]
+    # Python 3 compatible duck-typing
+    # If this is a Unicode string, return its string representation
+    if str(type(data)) == "<type 'unicode'>":
+        return data.encode('utf-8')
+
+    # If it's anything else, return it in its original form
+    return data
 
 
 def getIP():
@@ -123,13 +130,9 @@ def _show():
 
     for idx, item in enumerate(jjs['servers']):
         print(
-            str(idx)
-            + ". name: "
-            + item['name']
-            + ", loc: "
-            + item['location']
-            + ", type: "
-            + item['type']
+            "{0}. name: {1}, loc: {2}, type: {3}".format(
+                idx, item['name'], item['location'], item['type']
+            )
         )
 
     print("\n")
@@ -315,9 +318,9 @@ if __name__ == '__main__':
     CONFIG_FILE = args.config
     RESTART_SSS = args.action
     file_exists = os.path.exists(CONFIG_FILE)
-    if file_exists == False:
+    if file_exists is False:
         print("请在当前目录创建config.json!")
-        exit()
+        sys.exit(1)
 
     with open(CONFIG_FILE, "r") as f:
         jjs = unicode_convert(json.load(f))
