@@ -27,7 +27,7 @@
 ## status.sh
 
 - 脚本说明: ServerStatus 一键安装管理脚本
-- 系统支持: CentOS6+ / Debian6+ / Ubuntu14+
+- 系统支持: CentOS7+ / Debian9+ / Ubuntu18+
 
 #### 下载安装:
 
@@ -200,10 +200,9 @@ Agent机器安装脚本改为systemd， 支持开机自启
 由于未改动cppla版的任何代码，所以，我愿意把这个项目称为ServerStatus的小插件, 理论上它可以为任何版本的ServerStatus服务
 
 #### 安装
-在服务端复制以下命令，一键到底。请记得替换成你自己的YOUR_TG_CHAT_ID，YOUR_TG_BOT_TOKEN，IP_PORT需要改成你自己的探针web服务地址。
+在服务端复制以下命令，一键到底。请记得替换成你自己的YOUR_TG_CHAT_ID，YOUR_TG_BOT_TOKEN
 
 其中，Bot token可以通过@BotFather创建机器人获取， Chat id可以通过@getuserID获取。
-IP_PORT需要改成你自己的探针web服务地址。ip+端口的形式,eg：ip:port
 
 wget --no-check-certificate -O sss.sh https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/sss.sh && chmod +x ./sss.sh && sudo ./sss.sh YOUR_TG_CHAT_ID YOUR_TG_BOT_TOKEN
 
