@@ -1,7 +1,7 @@
 services:
   serverstatus:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     image: looprt/serverstatus_server
     container_name: serverstatus
