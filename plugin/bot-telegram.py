@@ -10,7 +10,8 @@ import requests
 import time
 import traceback
 
-NODE_STATUS_URL = 'http://sss/json/stats.json'
+DOMAIN = os.getenv('SERVER_DOMAIN')
+NODE_STATUS_URL = 'http://{domain}/json/stats.json'.format(domain=DOMAIN)
 
 offs = []
 counterOff = {}

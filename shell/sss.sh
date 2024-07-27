@@ -87,7 +87,7 @@ modify_bot_config() {
 
     tg_chat_id=$1
     tg_bot_token=$2
-    sss_adder=$3
+    sss_adder="$(curl -s https://api.ipify.org | head -n 1):8081"
     server_port=$(python -c 'import random;print(random.randint(10000, 65536))')
     echo -e "server port: $server_port\n"
     cat >port.json <<-EOF
@@ -99,7 +99,7 @@ EOF
     sed -i "s/tg_chat_id/${tg_chat_id}/" docker-compose.yml
     sed -i "s/tg_bot_token/${tg_bot_token}/" docker-compose.yml
     sed -i "s/35601/${server_port}/" docker-compose.yml
-    sed -i "s/sss/${sss_adder}/" bot-telegram.py
+    sed -i "s/server_domain/${sss_adder}/" docker-compose.yml
 }
 
 install_dashboard() {
@@ -111,7 +111,7 @@ install_dashboard() {
     fi
 
     echo -e "> 安装面板"
-
+    mkdir /root/sss && cd /root/sss || exit
     wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/plugin/docker-compose.yml >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/plugin/Dockerfile-telegram >/dev/null 2>&1
