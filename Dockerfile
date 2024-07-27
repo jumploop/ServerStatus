@@ -21,8 +21,12 @@ RUN mkdir -p /ServerStatus/server/
 WORKDIR /ServerStatus/server/
 COPY --from=builder server /ServerStatus/server/
 COPY --from=builder web /usr/share/nginx/html/
-COPY shell/start_nginx.sh /ServerStatus/server/
-RUN chmod +x start_nginx.sh
+RUN set -x; buildDeps='curl' \
+    && apt-get update \
+    && apt-get install -y $buildDeps \
+    && curl -1sLf "https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/start_nginx.sh" | tee start_nginx.sh && chmod +x start_nginx.sh \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get purge -y --auto-remove $buildDeps
 
 # china time
 ENV TZ=Asia/Shanghai
