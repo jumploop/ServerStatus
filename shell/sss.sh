@@ -108,6 +108,7 @@ install_dashboard() {
     install_docker
 
     if [ "$(docker ps -q -f name=bot4sss)" ]; then
+        echo -e "${green}bot4sss${plain} 正在运行"
         return 0
     fi
 
