@@ -317,7 +317,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     CONFIG_FILE = args.config
     RESTART_SSS = args.action
-    file_exists = os.path.exists(CONFIG_FILE)
+    file_exists = os.path.isfile(CONFIG_FILE)
     if file_exists is False:
         print("请在当前目录创建config.json!")
         sys.exit(1)

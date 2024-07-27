@@ -108,8 +108,9 @@ install_dashboard() {
     install_docker
 
     if [ "$(docker ps -q -f name=bot4sss)" ]; then
-        echo -e "${green}bot4sss${plain} 正在运行"
-        return 0
+        echo -e "${green}bot4sss${plain} 正在运行，现在需要停止该容器"
+        docker stop "$(docker ps -qa -f name=bot4sss)" && docker rm "$(docker ps -qa -f name=bot4sss)"
+        echo -e "${green}bot4sss${plain} 已停止"
     fi
 
     echo -e "> 安装面板"
