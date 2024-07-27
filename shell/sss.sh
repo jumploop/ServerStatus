@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 #========================================================
 #   System Required: CentOS 7+ / Debian 8+ / Ubuntu 16+ /
 #     Arch 未测试
