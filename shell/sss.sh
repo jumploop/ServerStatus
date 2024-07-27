@@ -111,7 +111,8 @@ install_dashboard() {
     fi
 
     echo -e "> 安装面板"
-    mkdir /root/sss && cd /root/sss || exit
+    [ ! -d /root/sss ] && mkdir /root/sss
+    cd /root/sss || exit
     wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/plugin/docker-compose.yml >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/plugin/Dockerfile-telegram >/dev/null 2>&1
