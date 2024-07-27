@@ -1,0 +1,38 @@
+# The Dockerfile for build localhost source, not git repo
+FROM debian:stable-slim AS builder
+
+LABEL maintainer="jumploop"
+
+RUN apt-get update -y && apt-get -y install gcc g++ make libcurl4-openssl-dev
+
+COPY . .
+
+WORKDIR /server
+
+RUN make -j
+RUN pwd && ls -a
+# glibc env run
+
+FROM debian:latest
+RUN mkdir -p /ServerStatus/server/
+WORKDIR /ServerStatus/server/
+# install caddy
+RUN apt-get update -y
+RUN apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl
+RUN curl -1sLf "https://dl.cloudsmith.io/public/caddy/stable/gpg.key" | tee /etc/apt/trusted.gpg.d/caddy-stable.asc
+RUN curl -1sLf "https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt" | tee /etc/apt/sources.list.d/caddy-stable.list
+RUN apt-get install caddy -y
+RUN apt-get clean
+
+COPY --from=builder server /ServerStatus/server/
+COPY --from=builder web /usr/share/caddy/
+COPY shell/start_caddy.sh /ServerStatus/server/
+RUN chmod +x start_caddy.sh
+
+# china time
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+EXPOSE 80 35601
+HEALTHCHECK --interval=5s --timeout=3s --retries=3 CMD curl --fail http://localhost:80 || bash -c 'kill -s 15 -1 && (sleep 10; kill -s 9 -1)'
+CMD ["./start_caddy.sh"]
