@@ -23,3 +23,4 @@ services:
       # - TG_BOT_TOKEN=${TG_BOT_TOKEN}
       - TG_CHAT_ID=tg_chat_id
       - TG_BOT_TOKEN=tg_bot_token
+      - SERVER_DOMAIN=server_domain
