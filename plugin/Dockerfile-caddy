@@ -2,6 +2,7 @@
 FROM debian:stable-slim AS builder
 
 LABEL maintainer="jumploop"
+LABEL version="0.0.1"
 
 RUN apt-get update -y && apt-get -y install gcc g++ make libcurl4-openssl-dev
 
