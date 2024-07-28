@@ -22,7 +22,7 @@
 * server/config.json	探针配置文件                                
 * web/json      	探针月流量        
 
-# 部署：
+# Linux部署
 
 ## status.sh
 
@@ -34,6 +34,9 @@
 ```bash
 wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/status.sh && chmod +x status.sh && bash status.sh
 ```
+部署成功后，web服务地址：http://ip:8888
+
+# 容器部署：
 
 【服务端】：
 ```bash
@@ -53,7 +56,7 @@ wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.c
 eg:
 wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/cppla/ServerStatus/master/clients/client-linux.py' && nohup python3 client-linux.py SERVER=45.79.67.132 USER=s04  >/dev/null 2>&1 &
 ```
-
+部署成功后，web服务地址：http://ip:8080
 # 主题：            
 
 * layui：https://github.com/zeyudada/StatusServerLayui ，预览：https://sslt.8zyw.cn            
