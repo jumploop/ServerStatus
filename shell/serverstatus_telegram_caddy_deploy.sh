@@ -119,9 +119,9 @@ install_dashboard() {
     cd $WORKDIR || exit
     [ ! -d server ] && mkdir server
     [ ! -d web ] && mkdir web
-    wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/plugin/docker-compose-caddy.yml >/dev/null 2>&1
-    wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/plugin/Dockerfile-caddy >/dev/null 2>&1
-    wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/plugin/Dockerfile-telegram >/dev/null 2>&1
+    wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/docker-compose/docker-compose-caddy.yml >/dev/null 2>&1
+    wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/docker-compose/Dockerfile-caddy >/dev/null 2>&1
+    wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/docker-compose/Dockerfile-telegram >/dev/null 2>&1
     wget --no-check-certificate -O bot-telegram.py ${GITHUB_RAW_URL}/plugin/bot-telegram.py >/dev/null 2>&1
     wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
     [[ ! -e server/config.json ]] && wget --no-check-certificate -O server/config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1

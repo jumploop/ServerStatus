@@ -1,0 +1,13 @@
+FROM python:alpine
+
+LABEL maintainer="lidalao"
+LABEL version="0.0.1"
+LABEL description="Telegram Bot for ServerStatus"
+
+WORKDIR /app
+RUN pip install requests  \
+    && apk --no-cache add -U curl \
+    && curl -1sLf "https://raw.githubusercontent.com/jumploop/ServerStatus/master/plugin/bot-telegram.py" | tee bot-telegram.py \
+    && apk del curl
+
+CMD [ "python", "./bot-telegram.py" ]
