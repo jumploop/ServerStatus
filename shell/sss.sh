@@ -8,6 +8,8 @@ set -x
 #========================================================
 
 GITHUB_RAW_URL="https://raw.githubusercontent.com/jumploop/ServerStatus/master"
+WORKDIR=/root/sss
+[ ! -d $WORKDIR ] && mkdir -p $WORKDIR
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -50,9 +52,7 @@ install_docker() {
     if [[ $? != 0 ]]; then
         install_base
         echo -e "正在安装 Docker"
-        curl -sLo install.sh https://get.docker.com
-        bash install.sh >/dev/null 2>&1
-        # bash <(curl -sL https://get.docker.com) >/dev/null 2>&1
+        bash <(curl -sL https://get.docker.com) >/dev/null 2>&1
         if [[ $? != 0 ]]; then
             echo -e "${red}下载Docker失败${plain}"
             exit 1
@@ -114,8 +114,7 @@ install_dashboard() {
     fi
 
     echo -e "> 安装面板"
-    [ ! -d /root/sss ] && mkdir /root/sss
-    cd /root/sss || exit
+    cd $WORKDIR || exit
     wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/plugin/docker-compose.yml >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/plugin/Dockerfile-telegram >/dev/null 2>&1
