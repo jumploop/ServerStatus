@@ -2,16 +2,19 @@
 FROM debian:buster AS builder
 
 LABEL maintainer="cppla https://cpp.la"
+ARG WORK=/root
+ARG BRANCH=master
 
-RUN apt-get update -y && apt-get -y install gcc g++ make libcurl4-openssl-dev
+RUN apt-get update -y && apt-get -y install gcc g++ make libcurl4-openssl-dev wget unzip
 
-COPY . .
+RUN wget -q --no-check-certificate https://github.com/jumploop/ServerStatus/archive/refs/heads/$BRANCH.zip -P $WORK && \
+    unzip $WORK/$BRANCH.zip -d $WORK && rm -rf $WORK/*.zip
 
-WORKDIR /server
+WORKDIR $WORK/ServerStatus-$BRANCH/server
 
 RUN make -j
 RUN pwd && ls -a
-
+RUN mv $WORK/ServerStatus-$BRANCH/* /
 # glibc env run
 FROM nginx:latest
 
