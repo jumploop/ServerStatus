@@ -89,7 +89,10 @@ install_dashboard() {
         docker stop "$(docker ps -qa -f name=serverstatus)" && docker rm "$(docker ps -qa -f name=serverstatus)"
         echo -e "${green}serverstatus${plain} 已停止"
     fi
-
+    if [ "$(docker network ls -f name=serverstatus -q)" ]; then
+        docker network rm "$(docker network ls -f name=serverstatus -q)"
+        echo -e "${green}network serverstatus-network${plain} 已删除"
+    fi
     echo -e "> 安装面板"
     cd $WORKDIR || exit
     [ ! -d server ] && mkdir server
