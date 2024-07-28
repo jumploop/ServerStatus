@@ -81,24 +81,52 @@ install_docker() {
     fi
 }
 
+modify_yml_config() {
+    if [[ $# -lt 2 ]]; then
+        echo -e "${red}参数错误，未能正确提供tg bot信息，请手动修改docker-compse.yml中的bot信息 ${plain}"
+        exit 1
+    fi
+
+    tg_chat_id=$1
+    tg_bot_token=$2
+    sss_adder="$(curl -s https://api.ipify.org | head -n 1):8080"
+
+    echo -e "> 修改docker-compose.yml"
+    sed -i "s/context: ../context: ./" docker-compose.yml
+    sed -i "s#../server/config.json#./server/config.json#" docker-compose.yml
+    sed -i "s#../web/json#./web/json#" docker-compose.yml
+    sed -i "s/\${TG_CHAT_ID}/${tg_chat_id}/" docker-compose.yml
+    sed -i "s/\${TG_BOT_TOKEN}/${tg_bot_token}/" docker-compose.yml
+    sed -i "s/\${SERVER_DOMAIN}/${sss_adder}/" docker-compose.yml
+}
+
 install_dashboard() {
 
     install_docker
 
+    if [ "$(docker ps -q -f name=bot4sss)" ]; then
+        docker stop "$(docker ps -qa -f name=bot4sss)" && docker rm "$(docker ps -qa -f name=bot4sss)"
+        echo -e "${green}bot4sss${plain} 已停止"
+    fi
     if [ "$(docker ps -q -f name=serverstatus)" ]; then
         docker stop "$(docker ps -qa -f name=serverstatus)" && docker rm "$(docker ps -qa -f name=serverstatus)"
         echo -e "${green}serverstatus${plain} 已停止"
     fi
-
+    if [ "$(docker network ls -f name=serverstatus -q)" ]; then
+        docker network rm "$(docker network ls -f name=serverstatus -q)"
+        echo -e "${green}network serverstatus-network${plain} 已删除"
+    fi
     echo -e "> 安装面板"
     cd $WORKDIR || exit
     [ ! -d server ] && mkdir server
     [ ! -d web ] && mkdir web
-    wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/docker-compose.yml >/dev/null 2>&1
+    wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/plugin/docker-compose-telegram.yml >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
+    wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/plugin/Dockerfile-telegram >/dev/null 2>&1
+    wget --no-check-certificate -O bot-telegram.py ${GITHUB_RAW_URL}/plugin/bot-telegram.py >/dev/null 2>&1
     wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
     [[ ! -e server/config.json ]] && wget --no-check-certificate -O server/config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1
-
+    modify_yml_config "$@"
     echo -e "> 启动面板"
     (docker-compose up -d) >/dev/null 2>&1
 }
