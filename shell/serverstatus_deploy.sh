@@ -93,17 +93,19 @@ install_dashboard() {
 
     echo -e "> 安装面板"
     cd $WORKDIR || exit
+    rm -rf ./* >/dev/null 2>&1
+    mkdir server web
     wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/docker-compose.yml >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
     wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
-    [[ ! -e config.json ]] && wget --no-check-certificate -O config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1
+    [[ ! -e server/config.json ]] && wget --no-check-certificate -O server/config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1
 
     echo -e "> 启动面板"
     (docker-compose up -d) >/dev/null 2>&1
 }
 
 nodes_mgr() {
-    python3 _sss.py
+    python3 _sss.py -c server/config.json
 }
 
 pre_check
