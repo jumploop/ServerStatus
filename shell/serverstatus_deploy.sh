@@ -93,8 +93,8 @@ install_dashboard() {
 
     echo -e "> 安装面板"
     cd $WORKDIR || exit
-    rm -rf ./* >/dev/null 2>&1
-    mkdir server web
+    [ ! -d server ] && mkdir server
+    [ ! -d web ] && mkdir web
     wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/docker-compose.yml >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
     wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
