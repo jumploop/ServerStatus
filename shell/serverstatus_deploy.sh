@@ -84,7 +84,11 @@ install_docker() {
 install_dashboard() {
 
     install_docker
-
+    
+    if [ "$(docker ps -q -f name=bot4sss)" ]; then
+        docker stop "$(docker ps -qa -f name=bot4sss)" && docker rm "$(docker ps -qa -f name=bot4sss)"
+        echo -e "${green}bot4sss${plain} 已停止"
+    fi
     if [ "$(docker ps -q -f name=serverstatus)" ]; then
         docker stop "$(docker ps -qa -f name=serverstatus)" && docker rm "$(docker ps -qa -f name=serverstatus)"
         echo -e "${green}serverstatus${plain} 已停止"
