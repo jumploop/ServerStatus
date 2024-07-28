@@ -115,9 +115,9 @@ install_dashboard() {
 
     echo -e "> 安装面板"
     cd $WORKDIR || exit
-    wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/plugin/docker-compose.yml >/dev/null 2>&1
+    wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/docker-compose/docker-compose.yml >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
-    wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/plugin/Dockerfile-telegram >/dev/null 2>&1
+    wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/docker-compose/Dockerfile-telegram >/dev/null 2>&1
     wget --no-check-certificate -O bot-telegram.py ${GITHUB_RAW_URL}/plugin/bot-telegram.py >/dev/null 2>&1
     wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
     [[ ! -e config.json ]] && wget --no-check-certificate -O config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1
