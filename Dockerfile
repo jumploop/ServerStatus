@@ -1,5 +1,5 @@
 # The Dockerfile for build localhost source, not git repo
-FROM debian:buster AS builder
+FROM debian:stable-slim AS builder
 
 LABEL maintainer="cppla https://cpp.la"
 ARG WORK=/root
@@ -24,12 +24,10 @@ RUN mkdir -p /ServerStatus/server/
 WORKDIR /ServerStatus/server/
 COPY --from=builder server /ServerStatus/server/
 COPY --from=builder web /usr/share/nginx/html/
-RUN set -x; buildDeps='curl' \
-    && apt-get update \
-    && apt-get install -y $buildDeps \
+RUN set -x;apt-get update -y \
+    && apt-get install -y curl \
     && curl -1sLf "https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/start_nginx.sh" | tee start_nginx.sh && chmod +x start_nginx.sh \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get purge -y --auto-remove $buildDeps
+    && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # china time
 ENV TZ=Asia/Shanghai
