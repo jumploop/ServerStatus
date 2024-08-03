@@ -5,7 +5,7 @@ LABEL maintainer="cppla https://cpp.la"
 ARG WORK=/root
 ARG BRANCH=master
 
-RUN apt-get update -y && apt-get -y install gcc g++ make libcurl4-openssl-dev wget unzip
+RUN apt-get update && apt-get -y install gcc g++ make libcurl4-openssl-dev wget unzip
 
 RUN wget -q --no-check-certificate https://github.com/jumploop/ServerStatus/archive/refs/heads/$BRANCH.zip -P $WORK && \
     unzip $WORK/$BRANCH.zip -d $WORK && rm -rf $WORK/*.zip
