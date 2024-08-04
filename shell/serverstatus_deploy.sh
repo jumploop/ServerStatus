@@ -109,8 +109,8 @@ modify_config() {
     ${green}4.${plain}  使用基于ubuntu和caddy镜像的Server Status服务
     ${green}0.${plain}  退出脚本
     "
-    echo && read -erp "请输入选择 [0-4]: " num
-
+    echo && read -erp "请输入选择 [0-4]:(默认: 1) " num
+    num=${num:-1}
     case "${num}" in
     0)
         exit 0

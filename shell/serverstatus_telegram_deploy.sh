@@ -91,7 +91,37 @@ modify_config() {
     tg_bot_token=$2
     sss_adder="$(curl -s https://api.ipify.org | head -n 1):8080"
 
-    echo -e "> 修改docker-compose.yml"
+    echo -e "
+    ${green}> 修改 docker-compose.yml${plain}
+    ${green}1.${plain}  使用基于debian和nginx镜像的Server Status服务
+    ${green}2.${plain}  使用基于debian和caddy镜像的Server Status服务
+    ${green}3.${plain}  使用基于ubuntu和nginx镜像的Server Status服务
+    ${green}4.${plain}  使用基于ubuntu和caddy镜像的Server Status服务
+    ${green}0.${plain}  退出脚本
+    "
+    echo && read -erp "请输入选择 [0-4]:(默认: 1) " num
+    num=${num:-1}
+    case "${num}" in
+    0)
+        exit 0
+        ;;
+
+    1)
+        sed -i "s/serverstatus_server$/&:latest/" docker-compose.yml
+        ;;
+    2)
+        sed -i "s/serverstatus_server$/&:caddy/" docker-compose.yml
+        ;;
+    3)
+        sed -i "s/serverstatus_server$/&:ubuntu-latest/" docker-compose.yml
+        ;;
+    4)
+        sed -i "s/serverstatus_server$/&:ubuntu-caddy/" docker-compose.yml
+        ;;
+    *)
+        echo -e "${red}请输入正确的数字 [0-2]${plain}"
+        ;;
+    esac
     sed -i "s/context: ../context: ./" docker-compose.yml
     sed -i "s#../server/config.json#./server/config.json#" docker-compose.yml
     sed -i "s#../web/json#./web/json#" docker-compose.yml
