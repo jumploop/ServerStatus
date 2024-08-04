@@ -99,7 +99,7 @@ modify_config() {
     sed -i "s/\${TG_BOT_TOKEN}/${tg_bot_token}/" docker-compose.yml
     sed -i "s/\${SERVER_DOMAIN}/${sss_adder}/" docker-compose.yml
     echo -e "> 修改config.json"
-    sed -i "s#yourSMSurl#api.telegram.org/bot${tg_bot_token}/sendMessage?parse_mode=HTML&disable_web_page_preview=true&chat_id=${tg_chat_id}&text=#g" server/config.json
+    sed -i "s#yourSMSurl#api.telegram.org/bot${tg_bot_token}/sendMessage?parse_mode=HTML\&disable_web_page_preview=true\&chat_id=${tg_chat_id}\&text=#g" server/config.json
 }
 
 install_dashboard() {
