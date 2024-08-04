@@ -128,7 +128,7 @@ modify_config() {
     sed -i "s/context: ../context: ./" docker-compose.yml
     sed -i "s#../server/config.json#./server/config.json#" docker-compose.yml
     sed -i "s#../web/json#./web/json#" docker-compose.yml
-    sed -i "s/8080$/${port}/" docker-compose.yml
+    sed -i "s/8080/${port}/" docker-compose.yml
     sed -i "s/\${TG_CHAT_ID}/${tg_chat_id}/" docker-compose.yml
     sed -i "s/\${TG_BOT_TOKEN}/${tg_bot_token}/" docker-compose.yml
     sed -i "s/\${SERVER_DOMAIN}/${sss_adder}/" docker-compose.yml
