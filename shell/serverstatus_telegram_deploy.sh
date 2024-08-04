@@ -89,8 +89,7 @@ modify_config() {
 
     tg_chat_id=$1
     tg_bot_token=$2
-    sss_adder="$(curl -s https://api.ipify.org | head -n 1):8080"
-
+    
     echo -e "
     ${green}> 修改 docker-compose.yml${plain}
     ${green}1.${plain}  使用基于debian和nginx镜像的Server Status服务
@@ -122,9 +121,14 @@ modify_config() {
         echo -e "${red}请输入正确的数字 [0-2]${plain}"
         ;;
     esac
+    echo && read -erp "请输入web服务的映射端口:(默认: 8080) " port
+    port=${port:-1}
+    sss_adder="$(curl -s https://api.ipify.org | head -n 1):${port}"
+
     sed -i "s/context: ../context: ./" docker-compose.yml
     sed -i "s#../server/config.json#./server/config.json#" docker-compose.yml
     sed -i "s#../web/json#./web/json#" docker-compose.yml
+    sed -i "s/8080$/${port}/" docker-compose.yml
     sed -i "s/\${TG_CHAT_ID}/${tg_chat_id}/" docker-compose.yml
     sed -i "s/\${TG_BOT_TOKEN}/${tg_bot_token}/" docker-compose.yml
     sed -i "s/\${SERVER_DOMAIN}/${sss_adder}/" docker-compose.yml

@@ -132,6 +132,9 @@ modify_config() {
         echo -e "${red}请输入正确的数字 [0-2]${plain}"
         ;;
     esac
+    echo && read -erp "请输入web服务的映射端口:(默认: 8080) " port
+    port=${port:-1}
+    sed -i "s/8080$/${port}/" docker-compose.yml
 
 }
 install_dashboard() {
