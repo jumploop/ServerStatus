@@ -53,7 +53,9 @@ class NodesManager(object):
         }
         print("\n")
         print('- - - 欢迎使用最简洁的探针: Server Status - - -')
-        print('详细教程请参考：https://github.com/jumploop/ServerStatus/blob/master/doc/sss插件.md')
+        print(
+            '详细教程请参考：https://github.com/jumploop/ServerStatus/blob/master/doc/sss插件.md'
+        )
         print("\n")
         self._show()
         print("\n")
@@ -62,12 +64,12 @@ class NodesManager(object):
         x = input()
         if not is_number(x):
             print('无效输入, 退出')
-            return
+            self.exit()
         if x in actions:
             actions.get(x)()
         else:
             print('无效输入, 退出')
-            return
+            self.exit()
 
     def exit(self):
         """Exit the program"""
@@ -104,7 +106,7 @@ class NodesManager(object):
         if node_name == "":
             print("输入有误")
             self._back()
-            return
+            self.exit()
 
         print('>>>请输入{0}位置：[{1}]'.format(node_name, "us"))
         node_location = input()
@@ -127,9 +129,9 @@ class NodesManager(object):
         self.servers['servers'].append(item)
         self.save_config()
 
-        print("操作完成，等待服务重启")
+        logging.info("操作完成，等待服务重启")
         self.restart_server()
-        print("添加成功!")
+        logging.info("添加成功!")
         self._show()
         print('>>>请复制以下命令在机器{0}安装agent服务'.format(item['name']))
         self.how2agent(item['username'], item['password'])
@@ -142,14 +144,14 @@ class NodesManager(object):
         if not is_number(idx):
             print('无效输入,退出')
             self._back()
-            return
-
-        if len(self.servers['servers']) <= int(idx):
+            self.exit()
+        index = int(idx)
+        if len(self.servers['servers']) <= index:
             print('输入无效')
             self._back()
-            return
+            self.exit()
 
-        item = self.servers['servers'][int(idx)]
+        item = self.servers['servers'][index]
         print(
             '--- 面板更换ip时，请复制以下命令在机器{0}安装agent服务 ---'.format(
                 item['name']
@@ -183,7 +185,7 @@ class NodesManager(object):
         )
         node_monthstart = input()
         if "" != node_monthstart:
-            self.servers['servers'][int(idx)]['monthstart'] = node_monthstart
+            self.servers['servers'][index]['monthstart'] = node_monthstart
 
         if (
             "" == node_name
@@ -193,11 +195,11 @@ class NodesManager(object):
         ):
             print('未做任何更新，直接返回')
             self._back()
-            return
+            self.exit()
         self.save_config()
-        print("操作完成，等待服务重启")
+        logging.info("操作完成，等待服务重启")
         self.restart_server()
-        print("更新成功!")
+        logging.info("更新成功!")
         self._show()
         self._back()
 
@@ -208,29 +210,29 @@ class NodesManager(object):
         if not is_number(idx):
             print('无效输入,退出')
             self._back()
-            return
-
-        if len(self.servers['servers']) <= int(idx):
+            self.exit()
+        index = int(idx)
+        if len(self.servers['servers']) <= index:
             print('输入无效')
             self._back()
-            return
+            self.exit()
 
         print(
             '>>>请确认你需要删除的节点：{0}？ [Y/n]'.format(
-                self.servers['servers'][int(idx)]['name']
+                self.servers['servers'][index]['name']
             )
         )
         confirm = input()
         if confirm in "nN":
             print("取消删除")
             self._back()
-            return
+            self.exit()
 
-        del self.servers['servers'][int(idx)]
+        del self.servers['servers'][index]
         self.save_config()
-        print("操作完成，等待服务重启")
+        logging.info("操作完成，等待服务重启")
         self.restart_server()
-        print("删除成功!")
+        logging.info("删除成功!")
         self._show()
         self._back()
 
