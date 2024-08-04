@@ -122,7 +122,7 @@ modify_config() {
         ;;
     esac
     echo && read -erp "请输入web服务的映射端口:(默认: 8080) " port
-    port=${port:-1}
+    port=${port:-8080}
     sss_adder="$(curl -s https://api.ipify.org | head -n 1):${port}"
 
     sed -i "s/context: ../context: ./" docker-compose.yml

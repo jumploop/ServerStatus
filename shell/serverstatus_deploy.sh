@@ -133,7 +133,7 @@ modify_config() {
         ;;
     esac
     echo && read -erp "请输入web服务的映射端口:(默认: 8080) " port
-    port=${port:-1}
+    port=${port:-8080}
     sed -i "s/8080$/${port}/" docker-compose.yml
 
 }
