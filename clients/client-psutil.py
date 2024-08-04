@@ -22,6 +22,7 @@ PING_PACKET_HISTORY_LEN = 100
 ONLINE_PACKET_HISTORY_LEN = 288
 INTERVAL = 1
 
+import argparse
 import socket
 import ssl
 import time
@@ -32,28 +33,50 @@ import json
 import errno
 import psutil
 import threading
+
 if sys.version_info.major == 3:
     from queue import Queue
 elif sys.version_info.major == 2:
     from Queue import Queue
 
+
 def get_uptime():
     return int(time.time() - psutil.boot_time())
+
 
 def get_memory():
     Mem = psutil.virtual_memory()
     return int(Mem.total / 1024.0), int(Mem.used / 1024.0)
 
+
 def get_swap():
     Mem = psutil.swap_memory()
-    return int(Mem.total/1024.0), int(Mem.used/1024.0)
+    return int(Mem.total / 1024.0), int(Mem.used / 1024.0)
+
 
 def get_hdd():
     if "darwin" in sys.platform:
-        return int(psutil.disk_usage("/").total/1024.0/1024.0), int((psutil.disk_usage("/").total-psutil.disk_usage("/").free)/1024.0/1024.0)
+        return int(psutil.disk_usage("/").total / 1024.0 / 1024.0), int(
+            (psutil.disk_usage("/").total - psutil.disk_usage("/").free)
+            / 1024.0
+            / 1024.0
+        )
     else:
-        valid_fs = ["ext4", "ext3", "ext2", "reiserfs", "jfs", "btrfs", "fuseblk", "zfs", "simfs", "ntfs", "fat32",
-                    "exfat", "xfs"]
+        valid_fs = [
+            "ext4",
+            "ext3",
+            "ext2",
+            "reiserfs",
+            "jfs",
+            "btrfs",
+            "fuseblk",
+            "zfs",
+            "simfs",
+            "ntfs",
+            "fat32",
+            "exfat",
+            "xfs",
+        ]
         disks = dict()
         size = 0
         used = 0
@@ -64,25 +87,34 @@ def get_hdd():
             usage = psutil.disk_usage(disk)
             size += usage.total
             used += usage.used
-        return int(size/1024.0/1024.0), int(used/1024.0/1024.0)
+        return int(size / 1024.0 / 1024.0), int(used / 1024.0 / 1024.0)
+
 
 def get_cpu():
     return psutil.cpu_percent(interval=INTERVAL)
+
 
 def liuliang():
     NET_IN = 0
     NET_OUT = 0
     net = psutil.net_io_counters(pernic=True)
     for k, v in net.items():
-        if 'lo' in k or 'tun' in k \
-                or 'docker' in k or 'veth' in k \
-                or 'br-' in k or 'vmbr' in k \
-                or 'vnet' in k or 'kube' in k:
+        if (
+            'lo' in k
+            or 'tun' in k
+            or 'docker' in k
+            or 'veth' in k
+            or 'br-' in k
+            or 'vmbr' in k
+            or 'vnet' in k
+            or 'kube' in k
+        ):
             continue
         else:
             NET_IN += v[1]
             NET_OUT += v[0]
     return NET_IN, NET_OUT
+
 
 def tupd():
     '''
@@ -91,10 +123,10 @@ def tupd():
     '''
     try:
         if sys.platform.startswith("linux") is True:
-            t = int(os.popen('ss -t|wc -l').read()[:-1])-1
-            u = int(os.popen('ss -u|wc -l').read()[:-1])-1
-            p = int(os.popen('ps -ef|wc -l').read()[:-1])-2
-            d = int(os.popen('ps -eLf|wc -l').read()[:-1])-2
+            t = int(os.popen('ss -t|wc -l').read()[:-1]) - 1
+            u = int(os.popen('ss -u|wc -l').read()[:-1]) - 1
+            p = int(os.popen('ps -ef|wc -l').read()[:-1]) - 2
+            d = int(os.popen('ps -eLf|wc -l').read()[:-1]) - 2
         elif sys.platform.startswith("darwin") is True:
             t = int(os.popen('lsof -nP -iTCP  | wc -l').read()[:-1]) - 1
             u = int(os.popen('lsof -nP -iUDP  | wc -l').read()[:-1]) - 1
@@ -107,21 +139,22 @@ def tupd():
                     pass
 
         elif sys.platform.startswith("win") is True:
-            t = int(os.popen('netstat -an|find "TCP" /c').read()[:-1])-1
-            u = int(os.popen('netstat -an|find "UDP" /c').read()[:-1])-1
+            t = int(os.popen('netstat -an|find "TCP" /c').read()[:-1]) - 1
+            u = int(os.popen('netstat -an|find "UDP" /c').read()[:-1]) - 1
             p = len(psutil.pids())
             # if you find cpu is high, please set d=0
             d = sum([psutil.Process(k).num_threads() for k in psutil.pids()])
         else:
-            t,u,p,d = 0,0,0,0
-        return t,u,p,d
+            t, u, p, d = 0, 0, 0, 0
+        return t, u, p, d
     except:
-        return 0,0,0,0
+        return 0, 0, 0, 0
+
 
 def get_network(ip_version):
-    if(ip_version == 4):
+    if ip_version == 4:
         HOST = "ipv4.google.com"
-    elif(ip_version == 6):
+    elif ip_version == 6:
         HOST = "ipv6.google.com"
     try:
         socket.create_connection((HOST, 80), 2).close()
@@ -129,29 +162,20 @@ def get_network(ip_version):
     except:
         return False
 
-lostRate = {
-    '10010': 0.0,
-    '189': 0.0,
-    '10086': 0.0
-}
-pingTime = {
-    '10010': 0,
-    '189': 0,
-    '10086': 0
-}
+
+lostRate = {'10010': 0.0, '189': 0.0, '10086': 0.0}
+pingTime = {'10010': 0, '189': 0, '10086': 0}
 netSpeed = {
     'netrx': 0.0,
     'nettx': 0.0,
     'clock': 0.0,
     'diff': 0.0,
     'avgrx': 0,
-    'avgtx': 0
+    'avgtx': 0,
 }
-diskIO = {
-    'read': 0,
-    'write': 0
-}
+diskIO = {'read': 0, 'write': 0}
 monitorServer = {}
+
 
 def _ping_thread(host, mark, port):
     lostPacket = 0
@@ -160,7 +184,9 @@ def _ping_thread(host, mark, port):
     while True:
         # flush dns, every time.
         IP = host
-        if host.count(':') < 1:  # if not plain ipv6 address, means ipv4 address or hostname
+        if (
+            host.count(':') < 1
+        ):  # if not plain ipv6 address, means ipv4 address or hostname
             try:
                 if PROBE_PROTOCOL_PREFER == 'ipv4':
                     IP = socket.getaddrinfo(host, None, socket.AF_INET)[0][4][0]
@@ -181,7 +207,7 @@ def _ping_thread(host, mark, port):
             if error.errno == errno.ECONNREFUSED:
                 pingTime[mark] = int((timeit.default_timer() - b) * 1000)
                 packet_queue.put(1)
-            #elif error.errno == errno.ETIMEDOUT:
+            # elif error.errno == errno.ETIMEDOUT:
             else:
                 lostPacket += 1
                 packet_queue.put(0)
@@ -191,15 +217,22 @@ def _ping_thread(host, mark, port):
 
         time.sleep(INTERVAL)
 
+
 def _net_speed():
     while True:
         avgrx = 0
         avgtx = 0
         for name, stats in psutil.net_io_counters(pernic=True).items():
-            if "lo" in name or "tun" in name \
-                    or "docker" in name or "veth" in name \
-                    or "br-" in name or "vmbr" in name \
-                    or "vnet" in name or "kube" in name:
+            if (
+                "lo" in name
+                or "tun" in name
+                or "docker" in name
+                or "veth" in name
+                or "br-" in name
+                or "vmbr" in name
+                or "vnet" in name
+                or "kube" in name
+            ):
                 continue
             avgrx += stats.bytes_recv
             avgtx += stats.bytes_sent
@@ -211,6 +244,7 @@ def _net_speed():
         netSpeed["avgrx"] = avgrx
         netSpeed["avgtx"] = avgtx
         time.sleep(INTERVAL)
+
 
 def _disk_io():
     """
@@ -268,34 +302,20 @@ def _disk_io():
             diskIO["read"] = disks_after.read_bytes - disks_before.read_bytes
             diskIO["write"] = disks_after.write_bytes - disks_before.write_bytes
 
+
 def get_realtime_data():
     '''
     real time get system data
     :return:
     '''
     t1 = threading.Thread(
-        target=_ping_thread,
-        kwargs={
-            'host': CU,
-            'mark': '10010',
-            'port': PROBEPORT
-        }
+        target=_ping_thread, kwargs={'host': CU, 'mark': '10010', 'port': PROBEPORT}
     )
     t2 = threading.Thread(
-        target=_ping_thread,
-        kwargs={
-            'host': CT,
-            'mark': '189',
-            'port': PROBEPORT
-        }
+        target=_ping_thread, kwargs={'host': CT, 'mark': '189', 'port': PROBEPORT}
     )
     t3 = threading.Thread(
-        target=_ping_thread,
-        kwargs={
-            'host': CM,
-            'mark': '10086',
-            'port': PROBEPORT
-        }
+        target=_ping_thread, kwargs={'host': CM, 'mark': '10086', 'port': PROBEPORT}
     )
     t4 = threading.Thread(
         target=_net_speed,
@@ -306,6 +326,7 @@ def get_realtime_data():
     for ti in [t1, t2, t3, t4, t5]:
         ti.daemon = True
         ti.start()
+
 
 def _monitor_thread(name, host, interval, type):
     lostPacket = 0
@@ -324,12 +345,22 @@ def _monitor_thread(name, host, interval, type):
                     IP = socket.getaddrinfo(address, None, socket.AF_INET)[0][4][0]
                 else:
                     IP = socket.getaddrinfo(address, None, socket.AF_INET6)[0][4][0]
-                monitorServer[name]["dns_time"] = int((timeit.default_timer() - m) * 1000)
+                monitorServer[name]["dns_time"] = int(
+                    (timeit.default_timer() - m) * 1000
+                )
                 m = timeit.default_timer()
                 k = socket.create_connection((IP, 80), timeout=6)
-                monitorServer[name]["connect_time"] = int((timeit.default_timer() - m) * 1000)
+                monitorServer[name]["connect_time"] = int(
+                    (timeit.default_timer() - m) * 1000
+                )
                 m = timeit.default_timer()
-                k.sendall("GET / HTTP/1.2\r\nHost:{}\r\nUser-Agent:ServerStatus/cppla\r\nConnection:close\r\n\r\n".format(address).encode('utf-8'))
+                k.sendall(
+                    "GET / HTTP/1.2\r\nHost:{}\r\nUser-Agent:ServerStatus/cppla\r\nConnection:close\r\n\r\n".format(
+                        address
+                    ).encode(
+                        'utf-8'
+                    )
+                )
                 response = b""
                 while True:
                     data = k.recv(4096)
@@ -337,7 +368,9 @@ def _monitor_thread(name, host, interval, type):
                         break
                     response += data
                 http_code = response.decode('utf-8').split('\r\n')[0].split()[1]
-                monitorServer[name]["download_time"] = int((timeit.default_timer() - m) * 1000)
+                monitorServer[name]["download_time"] = int(
+                    (timeit.default_timer() - m) * 1000
+                )
                 k.close()
                 if http_code not in ['200', '204', '301', '302', '401']:
                     raise Exception("http code not in 200, 204, 301, 302, 401")
@@ -349,13 +382,23 @@ def _monitor_thread(name, host, interval, type):
                     IP = socket.getaddrinfo(address, None, socket.AF_INET)[0][4][0]
                 else:
                     IP = socket.getaddrinfo(address, None, socket.AF_INET6)[0][4][0]
-                monitorServer[name]["dns_time"] = int((timeit.default_timer() - m) * 1000)
+                monitorServer[name]["dns_time"] = int(
+                    (timeit.default_timer() - m) * 1000
+                )
                 m = timeit.default_timer()
                 k = socket.create_connection((IP, 443), timeout=6)
-                monitorServer[name]["connect_time"] = int((timeit.default_timer() - m) * 1000)
+                monitorServer[name]["connect_time"] = int(
+                    (timeit.default_timer() - m) * 1000
+                )
                 m = timeit.default_timer()
                 kk = context.wrap_socket(k, server_hostname=address)
-                kk.sendall("GET / HTTP/1.2\r\nHost:{}\r\nUser-Agent:ServerStatus/cppla\r\nConnection:close\r\n\r\n".format(address).encode('utf-8'))
+                kk.sendall(
+                    "GET / HTTP/1.2\r\nHost:{}\r\nUser-Agent:ServerStatus/cppla\r\nConnection:close\r\n\r\n".format(
+                        address
+                    ).encode(
+                        'utf-8'
+                    )
+                )
                 response = b""
                 while True:
                     data = kk.recv(4096)
@@ -363,7 +406,9 @@ def _monitor_thread(name, host, interval, type):
                         break
                     response += data
                 http_code = response.decode('utf-8').split('\r\n')[0].split()[1]
-                monitorServer[name]["download_time"] = int((timeit.default_timer() - m) * 1000)
+                monitorServer[name]["download_time"] = int(
+                    (timeit.default_timer() - m) * 1000
+                )
                 kk.close()
                 k.close()
                 if http_code not in ['200', '204', '301', '302', '401']:
@@ -371,24 +416,36 @@ def _monitor_thread(name, host, interval, type):
             elif type == "tcp":
                 m = timeit.default_timer()
                 if PROBE_PROTOCOL_PREFER == 'ipv4':
-                    IP = socket.getaddrinfo(host.split(":")[0], None, socket.AF_INET)[0][4][0]
+                    IP = socket.getaddrinfo(host.split(":")[0], None, socket.AF_INET)[
+                        0
+                    ][4][0]
                 else:
-                    IP = socket.getaddrinfo(host.split(":")[0], None, socket.AF_INET6)[0][4][0]
-                monitorServer[name]["dns_time"] = int((timeit.default_timer() - m) * 1000)
+                    IP = socket.getaddrinfo(host.split(":")[0], None, socket.AF_INET6)[
+                        0
+                    ][4][0]
+                monitorServer[name]["dns_time"] = int(
+                    (timeit.default_timer() - m) * 1000
+                )
                 m = timeit.default_timer()
                 k = socket.create_connection((IP, int(host.split(":")[1])), timeout=6)
-                monitorServer[name]["connect_time"] = int((timeit.default_timer() - m) * 1000)
+                monitorServer[name]["connect_time"] = int(
+                    (timeit.default_timer() - m) * 1000
+                )
                 m = timeit.default_timer()
                 k.send(b"GET / HTTP/1.2\r\n\r\n")
                 k.recv(1024)
-                monitorServer[name]["download_time"] = int((timeit.default_timer() - m) * 1000)
+                monitorServer[name]["download_time"] = int(
+                    (timeit.default_timer() - m) * 1000
+                )
                 k.close()
             packet_queue.put(1)
         except Exception as e:
             lostPacket += 1
             packet_queue.put(0)
         if packet_queue.qsize() > 5:
-            monitorServer[name]["online_rate"] = 1 - float(lostPacket) / packet_queue.qsize()
+            monitorServer[name]["online_rate"] = (
+                1 - float(lostPacket) / packet_queue.qsize()
+            )
         time.sleep(interval)
 
 
@@ -405,18 +462,40 @@ def byte_str(object):
     else:
         print(type(object))
 
+
 if __name__ == '__main__':
-    for argc in sys.argv:
-        if 'SERVER' in argc:
-            SERVER = argc.split('SERVER=')[-1]
-        elif 'PORT' in argc:
-            PORT = int(argc.split('PORT=')[-1])
-        elif 'USER' in argc:
-            USER = argc.split('USER=')[-1]
-        elif 'PASSWORD' in argc:
-            PASSWORD = argc.split('PASSWORD=')[-1]
-        elif 'INTERVAL' in argc:
-            INTERVAL = int(argc.split('INTERVAL=')[-1])
+    # 获取命令行参数
+    if any(a.startswith('-') for a in sys.argv[1:]):
+        parser = argparse.ArgumentParser(description='云探针客户端')
+        parser.add_argument('-s', '--server', default=SERVER, help='Server address')
+        parser.add_argument('-p', '--port', default=PORT, help='Server port')
+        parser.add_argument('-u', '--user', default=USER, help='Server username')
+        parser.add_argument(
+            '-pw', '--passwd', default=PASSWORD, help='Server user passwd'
+        )
+        parser.add_argument(
+            '-i', '--interval', default=INTERVAL, help='Server interval'
+        )
+        args = parser.parse_args()
+        SERVER, PORT, USER, PASSWORD, INTERVAL = (
+            args.server,
+            args.port,
+            args.user,
+            args.passwd,
+            args.interval,
+        )
+    else:
+        for argc in sys.argv:
+            if 'SERVER' in argc:
+                SERVER = argc.split('SERVER=')[-1]
+            elif 'PORT' in argc:
+                PORT = int(argc.split('PORT=')[-1])
+            elif 'USER' in argc:
+                USER = argc.split('USER=')[-1]
+            elif 'PASSWORD' in argc:
+                PASSWORD = argc.split('PASSWORD=')[-1]
+            elif 'INTERVAL' in argc:
+                INTERVAL = int(argc.split('INTERVAL=')[-1])
     socket.setdefaulttimeout(30)
     get_realtime_data()
     while 1:
@@ -440,13 +519,13 @@ if __name__ == '__main__':
                 print(data)
                 for i in data.split('\n'):
                     if "monitor" in i and "type" in i and "{" in i and "}" in i:
-                        jdata = json.loads(i[i.find("{"):i.find("}")+1])
+                        jdata = json.loads(i[i.find("{") : i.find("}") + 1])
                         monitorServer[jdata.get("name")] = {
                             "type": jdata.get("type"),
                             "dns_time": 0,
                             "connect_time": 0,
                             "download_time": 0,
-                            "online_rate": 1
+                            "online_rate": 1,
                         }
                         t = threading.Thread(
                             target=_monitor_thread,
@@ -454,8 +533,8 @@ if __name__ == '__main__':
                                 'name': jdata.get("name"),
                                 'host': jdata.get("host"),
                                 'interval': jdata.get("interval"),
-                                'type': jdata.get("type")
-                            }
+                                'type': jdata.get("type"),
+                            },
                         )
                         t.daemon = True
                         t.start()
@@ -474,7 +553,11 @@ if __name__ == '__main__':
                 CPU = get_cpu()
                 NET_IN, NET_OUT = liuliang()
                 Uptime = get_uptime()
-                Load_1, Load_5, Load_15 = os.getloadavg() if 'linux' in sys.platform or 'darwin' in sys.platform else (0.0, 0.0, 0.0)
+                Load_1, Load_5, Load_15 = (
+                    os.getloadavg()
+                    if 'linux' in sys.platform or 'darwin' in sys.platform
+                    else (0.0, 0.0, 0.0)
+                )
                 MemoryTotal, MemoryUsed = get_memory()
                 SwapTotal, SwapUsed = get_swap()
                 HDDTotal, HDDUsed = get_hdd()
@@ -483,7 +566,7 @@ if __name__ == '__main__':
                     array['online' + str(check_ip)] = get_network(check_ip)
                     timer = 10
                 else:
-                    timer -= 1*INTERVAL
+                    timer -= 1 * INTERVAL
 
                 array['uptime'] = Uptime
                 array['load_1'] = Load_1
@@ -509,7 +592,10 @@ if __name__ == '__main__':
                 array['tcp'], array['udp'], array['process'], array['thread'] = tupd()
                 array['io_read'] = diskIO.get("read")
                 array['io_write'] = diskIO.get("write")
-                array['custom'] = "<br>".join(f"{k}\\t解析: {v['dns_time']}\\t连接: {v['connect_time']}\\t下载: {v['download_time']}\\t在线率: <code>{v['online_rate']*100:.2f}%</code>" for k, v in monitorServer.items())
+                array['custom'] = "<br>".join(
+                    f"{k}\\t解析: {v['dns_time']}\\t连接: {v['connect_time']}\\t下载: {v['download_time']}\\t在线率: <code>{v['online_rate']*100:.2f}%</code>"
+                    for k, v in monitorServer.items()
+                )
                 s.send(byte_str("update " + json.dumps(array) + "\n"))
         except KeyboardInterrupt:
             raise
