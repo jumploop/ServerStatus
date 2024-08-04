@@ -102,10 +102,8 @@ modify_config() {
 
 }
 
-install_dashboard() {
-
-    install_docker
-
+clean_images() {
+    echo -e "> 清理 Docker 镜像"
     if [ "$(docker ps -q -f name=bot4sss)" ]; then
         docker stop "$(docker ps -qa -f name=bot4sss)" && docker rm "$(docker ps -qa -f name=bot4sss)"
         echo -e "${green}bot4sss${plain} 已停止"
@@ -118,6 +116,13 @@ install_dashboard() {
         docker network rm "$(docker network ls -f name=serverstatus -q)"
         echo -e "${green}network serverstatus-network${plain} 已删除"
     fi
+    docker system prune -f --all
+}
+
+install_dashboard() {
+
+    install_docker
+    clean_images
     echo -e "> 安装面板"
     cd $WORKDIR || exit
     [ ! -d server ] && mkdir server
