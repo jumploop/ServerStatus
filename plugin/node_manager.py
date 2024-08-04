@@ -3,7 +3,7 @@
 # Create by : https://github.com/lidalao/ServerStatus
 # 版本：0.0.1, 支持Python版本：2.7 to 3.9
 # 支持操作系统： Linux, OSX, FreeBSD, OpenBSD and NetBSD, both 32-bit and 64-bit architectures
-
+from __future__ import print_function
 import json
 import logging
 import shlex
@@ -251,7 +251,7 @@ class NodesManager(object):
         print('```')
         print("\n")
         print(
-            'curl -L {0}/shell/sss-agent.sh  -o sss-agent.sh && chmod +x sss-agent.sh && sudo ./sss-agent.sh {1} {2} {3} {4}'.format(
+            'curl -L {0}/shell/serverstatus-agent.sh  -o serverstatus-agent.sh && chmod +x serverstatus-agent.sh && sudo ./serverstatus-agent.sh {1} {2} {3} {4}'.format(
                 self.github_raw_url, self.ip, user, passwd, self.server_port
             )
         )
