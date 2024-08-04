@@ -124,7 +124,7 @@ install_dashboard() {
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile-telegram ${GITHUB_RAW_URL}/docker-compose/Dockerfile-telegram >/dev/null 2>&1
     wget --no-check-certificate -O bot-telegram.py ${GITHUB_RAW_URL}/plugin/bot-telegram.py >/dev/null 2>&1
-    wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
+    wget --no-check-certificate -O node_manager.py ${GITHUB_RAW_URL}/plugin/node_manager.py >/dev/null 2>&1
     [[ ! -e server/config.json ]] && wget --no-check-certificate -O server/config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1
     modify_yml_config "$@"
     echo -e "> 启动面板"
@@ -132,7 +132,7 @@ install_dashboard() {
 }
 
 nodes_mgr() {
-    python3 _sss.py -c server/config.json
+    python3 node_manager.py -c server/config.json
 }
 
 pre_check

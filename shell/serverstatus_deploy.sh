@@ -84,7 +84,7 @@ install_docker() {
 install_dashboard() {
 
     install_docker
-    
+
     if [ "$(docker ps -q -f name=bot4sss)" ]; then
         docker stop "$(docker ps -qa -f name=bot4sss)" && docker rm "$(docker ps -qa -f name=bot4sss)"
         echo -e "${green}bot4sss${plain} 已停止"
@@ -103,7 +103,7 @@ install_dashboard() {
     [ ! -d web ] && mkdir web
     wget --no-check-certificate -O docker-compose.yml ${GITHUB_RAW_URL}/docker-compose.yml >/dev/null 2>&1
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
-    wget --no-check-certificate -O _sss.py ${GITHUB_RAW_URL}/plugin/_sss.py >/dev/null 2>&1
+    wget --no-check-certificate -O node_manager.py ${GITHUB_RAW_URL}/plugin/node_manager.py >/dev/null 2>&1
     [[ ! -e server/config.json ]] && wget --no-check-certificate -O server/config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1
 
     echo -e "> 启动面板"
@@ -111,7 +111,7 @@ install_dashboard() {
 }
 
 nodes_mgr() {
-    python3 _sss.py -c server/config.json
+    python3 node_manager.py -c server/config.json
 }
 
 pre_check
