@@ -99,6 +99,41 @@ clean_images() {
     docker system prune -f --all
 
 }
+modify_config() {
+
+    echo -e "
+    ${green}> 修改 docker-compose.yml${plain}
+    ${green}1.${plain}  使用基于debian和nginx镜像的Server Status服务
+    ${green}2.${plain}  使用基于debian和caddy镜像的Server Status服务
+    ${green}3.${plain}  使用基于ubuntu和nginx镜像的Server Status服务
+    ${green}4.${plain}  使用基于ubuntu和caddy镜像的Server Status服务
+    ${green}0.${plain}  退出脚本
+    "
+    echo && read -erp "请输入选择 [0-4]: " num
+
+    case "${num}" in
+    0)
+        exit 0
+        ;;
+
+    1)
+        sed -i "s/serverstatus_server$/&:latest/" docker-compose.yml
+        ;;
+    2)
+        sed -i "s/serverstatus_server$/&:caddy/" docker-compose.yml
+        ;;
+    3)
+        sed -i "s/serverstatus_server$/&:ubuntu-latest/" docker-compose.yml
+        ;;
+    4)
+        sed -i "s/serverstatus_server$/&:ubuntu-caddy/" docker-compose.yml
+        ;;
+    *)
+        echo -e "${red}请输入正确的数字 [0-2]${plain}"
+        ;;
+    esac
+
+}
 install_dashboard() {
 
     install_docker
@@ -111,7 +146,7 @@ install_dashboard() {
     wget --no-check-certificate -O Dockerfile ${GITHUB_RAW_URL}/Dockerfile >/dev/null 2>&1
     wget --no-check-certificate -O node_manager.py ${GITHUB_RAW_URL}/plugin/node_manager.py >/dev/null 2>&1
     [[ ! -e server/config.json ]] && wget --no-check-certificate -O server/config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1
-
+    modify_config
     echo -e "> 启动面板"
     (docker-compose up -d) >/dev/null 2>&1
 }
