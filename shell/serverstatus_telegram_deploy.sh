@@ -81,7 +81,7 @@ install_docker() {
     fi
 }
 
-modify_yml_config() {
+modify_config() {
     if [[ $# -lt 2 ]]; then
         echo -e "${red}参数错误，未能正确提供tg bot信息，请手动修改docker-compse.yml中的bot信息 ${plain}"
         exit 1
@@ -98,6 +98,8 @@ modify_yml_config() {
     sed -i "s/\${TG_CHAT_ID}/${tg_chat_id}/" docker-compose.yml
     sed -i "s/\${TG_BOT_TOKEN}/${tg_bot_token}/" docker-compose.yml
     sed -i "s/\${SERVER_DOMAIN}/${sss_adder}/" docker-compose.yml
+    echo -e "> 修改config.json"
+    sed -i "s#yourSMSurl#api.telegram.org/bot${tg_bot_token}/sendMessage?parse_mode=HTML&disable_web_page_preview=true&chat_id=${tg_chat_id}&text=#g" server/config.json
 }
 
 install_dashboard() {
@@ -126,7 +128,7 @@ install_dashboard() {
     wget --no-check-certificate -O bot-telegram.py ${GITHUB_RAW_URL}/plugin/bot-telegram.py >/dev/null 2>&1
     wget --no-check-certificate -O node_manager.py ${GITHUB_RAW_URL}/plugin/node_manager.py >/dev/null 2>&1
     [[ ! -e server/config.json ]] && wget --no-check-certificate -O server/config.json ${GITHUB_RAW_URL}/server/config.json >/dev/null 2>&1
-    modify_yml_config "$@"
+    modify_config "$@"
     echo -e "> 启动面板"
     (docker-compose up -d) >/dev/null 2>&1
 }
