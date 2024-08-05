@@ -24,13 +24,9 @@
 
 # Linux部署
 
-## status.sh
-
-- 脚本说明: ServerStatus 一键安装管理脚本
-- 系统支持: CentOS7+ / Debian9+ / Ubuntu18+
-
-#### 下载安装:
-
+支持操作系统：Debian/Ubuntu,Centos/Redhat,archlinux
+#### 一键脚本安装:
+支持的
 ```bash
 wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/status.sh && chmod +x status.sh && bash status.sh
 ```
@@ -47,6 +43,10 @@ wget --no-check-certificate -qO ~/serverstatus-config.json https://raw.githubuse
 docker run -d --restart=always --name=serverstatus -v ~/serverstatus-config.json:/ServerStatus/server/config.json -v ~/serverstatus-monthtraffic:/usr/share/nginx/html/json -p 80:80 -p 35601:35601 cppla/serverstatus:latest     
 
 `Docker-compose(推荐)`: docker-compose up -d
+```
+服务端一键脚本容器部署：
+```bash
+wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/serverstatus_deploy.sh && chmod +x serverstatus_deploy.sh && bash serverstatus_deploy.sh
 ```
 
 【客户端】：
@@ -156,7 +156,7 @@ cd ServerStatus/server && make
 }       
 ```
 
-#### 三、拷贝ServerStatus/status到你的网站目录        
+#### 三、拷贝ServerStatus/web到你的网站目录        
 例如：
 ```
 sudo cp -r ServerStatus/web/* /home/wwwroot/default
