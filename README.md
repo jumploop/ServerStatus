@@ -91,6 +91,7 @@ cd ServerStatus/server && make
 ! watchdog callback PushDeer: https://api2.pushdeer.com/message/push?pushkey=你自己的密钥&text=
 ! watchdog callback BasicAuth: https://用户名:密码@你自己的域名/api/push?message=
 ```
+关于Server酱的具体使用可以查看[Server酱使用方法](https://zhuanlan.zhihu.com/p/713331404)
 
 ```
 {
