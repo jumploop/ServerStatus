@@ -20,7 +20,7 @@ service="/usr/lib/systemd/system"
 jq_file="${file}/jq"
 [[ ! -e ${jq_file} ]] && jq_file="/usr/bin/jq"
 
-github_prefix="https://raw.githubusercontent.com/cppla/ServerStatus/master"
+github_prefix="https://raw.githubusercontent.com/jumploop/ServerStatus/master"
 
 NAME="ServerStatus"
 Green_font_prefix="\033[32m" && Red_font_prefix="\033[31m" && Red_background_prefix="\033[41;37m" && Font_color_suffix="\033[0m"
@@ -58,14 +58,21 @@ check_installed_client_status() {
 
 Download_Server_Status_server() {
   cd "/tmp" || exit 1
-  wget -N --no-check-certificate https://github.com/cppla/ServerStatus/archive/refs/heads/master.zip
-    [[ ! -e "master.zip" ]] && echo -e "${Error} ServerStatus 服务端下载失败 !" && exit 1
+  wget -N --no-check-certificate https://github.com/jumploop/ServerStatus/archive/refs/heads/master.zip
+  [[ ! -e "master.zip" ]] && echo -e "${Error} ServerStatus 服务端下载失败 !" && exit 1
   unzip master.zip
   rm -rf master.zip
   [[ ! -d "/tmp/ServerStatus-master" ]] && echo -e "${Error} ServerStatus 服务端解压失败 !" && exit 1
   cd "/tmp/ServerStatus-master/server" || exit 1
-  make
-  [[ ! -e "sergate" ]] && echo -e "${Error} ServerStatus 服务端编译失败 !" && cd "${file_1}" && rm -rf "/tmp//ServerStatus-master" && exit 1
+  sergate_file="../sergate_${release}"
+  if [[ -e "${sergate_file}" ]]; then
+    echo -e "${Info} use available ServerStatus 服务端"
+    mv "${sergate_file}" sergate
+    chmod +x sergate
+  else
+    make
+    [[ ! -e "sergate" ]] && echo -e "${Error} ServerStatus 服务端编译失败 !" && cd "${file_1}" && rm -rf "/tmp/ServerStatus-master" && exit 1
+  fi
   cd "${file_1}" || exit 1
   mkdir -p "${server_file}"
   mv "/tmp/ServerStatus-master/server" "${file}"
@@ -82,8 +89,8 @@ Download_Server_Status_server() {
 }
 
 Download_Server_Status_client() {
-mkdir -p "${client_file}"
-wget -N --no-check-certificate "${github_prefix}/clients/client-linux.py"  -P "${client_file}"
+  mkdir -p "${client_file}"
+  wget -N --no-check-certificate "${github_prefix}/clients/client-linux.py" -P "${client_file}"
 }
 
 Download_Server_Status_Service() {
@@ -91,12 +98,12 @@ Download_Server_Status_Service() {
   [[ -z ${mode} ]] && mode="server"
   local service_note="服务端"
   [[ ${mode} == "client" ]] && service_note="客户端"
-    wget --no-check-certificate "${github_prefix}/service/status-${mode}.service" -O "${service}/status-${mode}.service" ||
-      {
-        echo -e "${Error} $NAME ${service_note}服务管理脚本下载失败 !"
-        exit 1
-      }
-    systemctl enable "status-${mode}.service"
+  wget --no-check-certificate "${github_prefix}/service/status-${mode}.service" -O "${service}/status-${mode}.service" ||
+    {
+      echo -e "${Error} $NAME ${service_note}服务管理脚本下载失败 !"
+      exit 1
+    }
+  systemctl enable "status-${mode}.service"
   echo -e "${Info} $NAME ${service_note}服务管理脚本下载完成 !"
 }
 
@@ -114,12 +121,12 @@ Installation_dependency() {
     yum makecache
     yum -y install unzip
     yum -y install python3 >/dev/null 2>&1 || yum -y install python
-    [[ ${mode} == "server" ]] && yum -y groupinstall "Development Tools"
+    [[ ${mode} == "server" ]] && yum -y groupinstall "Development Tools" && yum -y install gcc gcc-c++ make libcurl-devel
   elif [[ ${release} == "debian" ]]; then
     apt -y update
     apt -y install unzip
     apt -y install python3 >/dev/null 2>&1 || apt -y install python
-    [[ ${mode} == "server" ]] && apt -y install build-essential
+    [[ ${mode} == "server" ]] && apt -y install build-essential gcc g++ make libcurl4-openssl-dev
   elif [[ ${release} == "archlinux" ]]; then
     pacman -Sy python python-pip unzip --noconfirm
     [[ ${mode} == "server" ]] && pacman -Sy base-devel --noconfirm
@@ -141,13 +148,13 @@ Write_server_config() {
             "monthstart": 1
         }
     ]
-}     
+}
 EOF
 }
 
 Write_server_config_conf() {
   cat >${server_conf_1} <<-EOF
-PORT = ${server_port_s}
+PORT="--port=${server_port_s}"
 EOF
 }
 
@@ -165,7 +172,7 @@ Read_config_server() {
     Write_server_config_conf
     server_port="35601"
   else
-    server_port="$(grep "PORT = " ${server_conf_1} | awk '{print $3}')"
+    server_port="$(grep "PORT=" ${server_conf_1} | awk -F '"' '{print $2}' | awk -F "=" '{print $2}')"
   fi
 }
 
@@ -343,7 +350,7 @@ Set_ServerStatus_server() {
   elif [[ ${server_num} == "7" ]]; then
     Modify_ServerStatus_server_location
   elif [[ ${server_num} == "8" ]]; then
-    Modify_ServerStatus_server_monthstart  
+    Modify_ServerStatus_server_monthstart
   elif [[ ${server_num} == "9" ]]; then
     Modify_ServerStatus_server_all
   elif [[ ${server_num} == "10" ]]; then
@@ -588,7 +595,7 @@ Set_ServerStatus_client() {
 
 Modify_config_client() {
   sed -i '0,/SERVER = "'"${client_server}"'"/s//SERVER = "'"${server_s}"'"/' "${client_file}/client-linux.py"
-  sed -i '0,/PORT = ${client_port}/s//PORT = ${server_port_s}/' "${client_file}/client-linux.py"
+  sed -i '0,/PORT = '${client_port}'/s//PORT = '${server_port_s}'/' "${client_file}/client-linux.py"
   sed -i '0,/USER = "'"${client_user}"'"/s//USER = "'"${username_s}"'"/' "${client_file}/client-linux.py"
   sed -i '0,/PASSWORD = "'"${client_password}"'"/s//PASSWORD = "'"${password_s}"'"/' "${client_file}/client-linux.py"
 }
@@ -670,7 +677,7 @@ Install_ServerStatus_server() {
   Install_caddy
   echo -e "${Info} 开始下载/安装..."
   Download_Server_Status_server
-Install_jq
+  Install_jq
   echo -e "${Info} 开始下载/安装 服务脚本..."
   Service_Server_Status_server
   echo -e "${Info} 开始写入 配置文件..."
@@ -717,7 +724,7 @@ Update_ServerStatus_client() {
   Download_Server_Status_client
   Read_config_client
   Modify_config_client
-  rm -rf  ${service}/status-client.service
+  rm -rf ${service}/status-client.service
   Service_Server_Status_client
   Start_ServerStatus_client
 }
@@ -727,37 +734,35 @@ Start_ServerStatus_server() {
   check_installed_server_status
   systemctl -q is-active status-server && echo -e "${Error} $NAME 正在运行，请检查 !" && exit 1
   systemctl start status-server
-		if (systemctl -q is-active status-server) then
-			echo -e "${Info} $NAME 服务端启动成功[监听端口：${port}] !"
-		else
-			echo -e "${Error} $NAME 服务端启动失败 !"
-		fi
+  if (systemctl -q is-active status-server); then
+    echo -e "${Info} $NAME 服务端启动成功[监听端口：${port}] !"
+  else
+    echo -e "${Error} $NAME 服务端启动失败 !"
+  fi
 }
 
 Stop_ServerStatus_server() {
   check_installed_server_status
-if (systemctl -q is-active status-server)
-  then
-  systemctl stop status-server 
- else  
- echo -e "${Error} $NAME 没有运行，请检查 !" && exit 1
-fi
-		if (systemctl -q is-active status-server) then
-			echo -e "${Error} $NAME 服务端停止失败 !"
-		else
-			echo -e "${Info} $NAME 服务端停止成功 !"
-		fi
+  if (systemctl -q is-active status-server); then
+    systemctl stop status-server
+  else
+    echo -e "${Error} $NAME 没有运行，请检查 !" && exit 1
+  fi
+  if (systemctl -q is-active status-server); then
+    echo -e "${Error} $NAME 服务端停止失败 !"
+  else
+    echo -e "${Info} $NAME 服务端停止成功 !"
+  fi
 }
 
 Restart_ServerStatus_server() {
   check_installed_server_status
   systemctl restart status-server
-if (systemctl -q is-active status-server)
-     then
-     echo -e "${Info} $NAME 服务端重启成功 !"
-else
-     echo -e "${Error} $NAME 服务端重启失败 !" && exit 1
-fi
+  if (systemctl -q is-active status-server); then
+    echo -e "${Info} $NAME 服务端重启成功 !"
+  else
+    echo -e "${Error} $NAME 服务端重启失败 !" && exit 1
+  fi
 }
 
 Uninstall_ServerStatus_server() {
@@ -794,39 +799,38 @@ Uninstall_ServerStatus_server() {
 
 Start_ServerStatus_client() {
   check_installed_client_status
-if (systemctl -q is-active status-client) then
+  if (systemctl -q is-active status-client); then
     echo -e "${Error} $NAME 客户端正在运行，请检查 !" && exit 1
-fi
-   systemctl start status-client
-   if (systemctl -q is-active status-client)
-     then
-       echo -e "${Info} $NAME 客户端启动成功 !"
-   else
-       echo -e "${Error} $NAME 客户端启动失败 !"
-   fi
+  fi
+  systemctl start status-client
+  if (systemctl -q is-active status-client); then
+    echo -e "${Info} $NAME 客户端启动成功 !"
+  else
+    echo -e "${Error} $NAME 客户端启动失败 !"
+  fi
 }
 
 Stop_ServerStatus_client() {
   check_installed_client_status
-if (systemctl -q is-active status-client) then
-  systemctl stop status-client
-    if (systemctl -q is-active status-client) then
-       echo -e "${Error}} $NAME 停止失败 !"
-      else
-       echo -e "${Info} $NAME 停止成功 !"
+  if (systemctl -q is-active status-client); then
+    systemctl stop status-client
+    if (systemctl -q is-active status-client); then
+      echo -e "${Error}} $NAME 停止失败 !"
+    else
+      echo -e "${Info} $NAME 停止成功 !"
     fi
-else
+  else
     echo -e "${Error} $NAME 没有运行，请检查 !" && exit 1
-fi
+  fi
 }
 
 Restart_ServerStatus_client() {
   systemctl restart status-client
-if (systemctl -q is-active status-client) then
-     echo -e "${Info} $NAME 重启成功 !"
-else
-     echo -e "${Error} $NAME 重启失败 !" && exit 1
-fi
+  if (systemctl -q is-active status-client); then
+    echo -e "${Info} $NAME 重启成功 !"
+  else
+    echo -e "${Error} $NAME 重启失败 !" && exit 1
+  fi
 }
 
 Uninstall_ServerStatus_client() {
@@ -863,27 +867,27 @@ View_ServerStatus_client() {
 }
 
 View_client_Log() {
-    journalctl -u status-client.service --no-pager -f
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
+  journalctl -u status-client.service --no-pager -f
+  if [[ $# == 0 ]]; then
+    before_show_menu
+  fi
 }
 
 View_server_Log() {
-    journalctl -u status-server.service --no-pager -f
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
+  journalctl -u status-server.service --no-pager -f
+  if [[ $# == 0 ]]; then
+    before_show_menu
+  fi
 }
 
 Update_Shell() {
   sh_new_ver=$(wget --no-check-certificate -qO- -t1 -T3 "${github_prefix}/status.sh" | grep 'sh_ver="' | awk -F "=" '{print $NF}' | sed 's/\"//g' | head -1)
   [[ -z ${sh_new_ver} ]] && echo -e "${Error} 无法链接到 Github !" && exit 0
-  if  [[ -e "${service}/status-client.service" ]]; then
+  if [[ -e "${service}/status-client.service" ]]; then
     rm -rf ${service}/status-client.service
     Service_Server_Status_client
   fi
-  if  [[ -e "${service}/status-server.service" ]]; then
+  if [[ -e "${service}/status-server.service" ]]; then
     rm -rf ${service}/status-server.service
     Service_Server_Status_server
   fi
@@ -915,8 +919,8 @@ menu_client() {
     else
       echo -e " 当前状态: 客户端 ${Green_font_prefix}已安装${Font_color_suffix} 但 ${Red_font_prefix}未启动${Font_color_suffix}"
     fi
-    else
-      echo -e " 当前状态: 客户端 ${Red_font_prefix}未安装${Font_color_suffix}"
+  else
+    echo -e " 当前状态: 客户端 ${Red_font_prefix}未安装${Font_color_suffix}"
   fi
   echo
   read -erp " 请输入数字 [0-10]:" num
@@ -978,7 +982,7 @@ menu_server() {
 ————————————
  ${Green_font_prefix}10.${Font_color_suffix} 切换为 客户端菜单" && echo
   if [[ -e "${server_file}/sergate" ]]; then
-    if (systemctl -q is-active status-server) then
+    if (systemctl -q is-active status-server); then
       echo -e " 当前状态: 服务端 ${Green_font_prefix}已安装${Font_color_suffix} 并 ${Green_font_prefix}已启动${Font_color_suffix}"
     else
       echo -e " 当前状态: 服务端 ${Green_font_prefix}已安装${Font_color_suffix} 但 ${Red_font_prefix}未启动${Font_color_suffix}"
