@@ -19,10 +19,9 @@ counterOn = {}
 
 
 def _send(text):
-    chat_id = os.getenv('TG_CHAT_ID')
-    bot_token = os.environ.get('TG_BOT_TOKEN')
-    url = "https://api.telegram.org/bot{bot_token}/sendMessage?parse_mode=HTML&disable_web_page_preview=true&chat_id={chat_id}&text={text}".format(
-        bot_token=bot_token, chat_id=chat_id, text=text
+    bot_token = os.environ.get('SC_BOT_TOKEN')
+    url = "https://sctapi.ftqq.com/{bot_token}.send?title=ServerStatus&desp={text}".format(
+        bot_token=bot_token, text=text
     )
     try:
         requests.get(url)

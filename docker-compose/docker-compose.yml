@@ -1,0 +1,26 @@
+services:
+  sss:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: looprt/serverstatus_server:latest
+    container_name: sss
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/ServerStatus/server/config.json
+      - ./json:/usr/share/nginx/html/json
+    ports:
+      - 35601:35601
+      - 8081:80
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile-telegram
+    container_name: bot4sss
+    restart: unless-stopped
+    environment:
+      # - TG_CHAT_ID=${TG_CHAT_ID}
+      # - TG_BOT_TOKEN=${TG_BOT_TOKEN}
+      - TG_CHAT_ID=tg_chat_id
+      - TG_BOT_TOKEN=tg_bot_token
+      - SERVER_DOMAIN=server_domain
