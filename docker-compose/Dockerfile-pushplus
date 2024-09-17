@@ -1,0 +1,13 @@
+FROM python:alpine
+
+LABEL maintainer="jumploop"
+LABEL version="0.0.1"
+LABEL description="PushPlus Bot for ServerStatus"
+
+WORKDIR /app
+RUN pip install requests  \
+    && apk --no-cache add -U curl \
+    && curl -1sLf "https://raw.githubusercontent.com/jumploop/ServerStatus/master/plugin/bot-pushplus.py" | tee bot-pushplus.py \
+    && apk del curl
+
+CMD [ "python", "./bot-pushplus.py" ]

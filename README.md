@@ -66,7 +66,15 @@ Telegram 上下线提醒服务端一键脚本容器部署：
 需要传入 Telegram 的 YOUR_TG_CHAT_ID，YOUR_TG_BOT_TOKEN
 
 ```bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/serverstatus_telegram_deploy.sh && chmod +x serverstatus_telegram_deploy.sh && bash serverstatus_telegram_deploy.sh YOUR_TG_CHAT_ID，YOUR_TG_BOT_TOKEN
+wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/serverstatus_telegram_deploy.sh && chmod +x serverstatus_telegram_deploy.sh && bash serverstatus_telegram_deploy.sh YOUR_TG_CHAT_ID YOUR_TG_BOT_TOKEN
+```
+
+pushplus 上下线提醒服务端一键脚本容器部署：
+
+需要传入 pushplus 的 YOUR_PP_BOT_TOKEN
+
+```bash
+wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/serverstatus_pushplus_deploy.sh && chmod +x serverstatus_pushplus_deploy.sh && bash serverstatus_pushplus_deploy.sh YOUR_PP_BOT_TOKEN
 ```
 
 【客户端】：
@@ -82,12 +90,12 @@ wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.c
 
 # 节点管理
 
-通过config_manager.py 脚本，可以很方便的进行节点的增删改查操作。特别在添加新节点时，会有提示如何在新节点安装对应的 agent 服务。节点管理时，把 config_manager.py 放到和 config.json 同一目录，运行 `python3 config_manager.py` 即可,默认配置文件 config.json 和脚本在同一目录，ServerStatus 默认服务重启命令为`docker-compose restart`。支持传入重启 ServerStatus 服务命令和 config.json 配置文件路径，改成你对应的服务启动方式和配置文件路径，例如用 systemd,则传入`systemctl restart ServerStatus`。
+通过 config_manager.py 脚本，可以很方便的进行节点的增删改查操作。特别在添加新节点时，会有提示如何在新节点安装对应的 agent 服务。节点管理时，把 config_manager.py 放到和 config.json 同一目录，运行 `python3 config_manager.py` 即可,默认配置文件 config.json 和脚本在同一目录，ServerStatus 默认服务重启命令为`docker-compose restart`。支持传入重启 ServerStatus 服务命令和 config.json 配置文件路径，改成你对应的服务启动方式和配置文件路径，例如用 systemd,则传入`systemctl restart ServerStatus`。
 
 脚本的参数，主要有 2 个：
 
 ```bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/plugin/config_manager.py 
+wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/plugin/config_manager.py
 
 python3 config_manager.py -a xxx -c xxx
 
@@ -133,6 +141,7 @@ cd ServerStatus/server && make
 ! watchdog callback Server酱: https://sctapi.ftqq.com/你自己的密钥.send?title=ServerStatus&desp=
 ! watchdog callback PushDeer: https://api2.pushdeer.com/message/push?pushkey=你自己的密钥&text=
 ! watchdog callback BasicAuth: https://用户名:密码@你自己的域名/api/push?message=
+! watchdog callback pushplus: https://www.pushplus.plus/send?token=你的token&title=ServerStatus&content=XXX&template=html
 ```
 
 关于 Server 酱的具体使用可以查看[Server 酱使用方法](https://zhuanlan.zhihu.com/p/713331404)
