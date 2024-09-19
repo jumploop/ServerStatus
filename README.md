@@ -207,6 +207,12 @@ cd ServerStatus/server && make
 			"callback": "https://yourSMSurl"
 		},
 		{
+			"name": "重要线路丢包率过高检查",
+			"rule": "(ping_10010>10|ping_189>10|ping_10086>10)&(host='sgp'|host='qqhk'|host='hk-21-x'|host='hk-31-x')",
+			"interval": 600,
+			"callback": "https://yourSMSurl"
+		},
+		{
 			"name": "你可以组合任何已知字段的表达式",
 			"rule": "(hdd_used/hdd_total)*100>95",
 			"interval": 1800,
