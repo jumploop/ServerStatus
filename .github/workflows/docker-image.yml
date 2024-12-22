@@ -16,6 +16,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        
       - name: Build the Docker image and Push the Docker image to Docker Hub
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
