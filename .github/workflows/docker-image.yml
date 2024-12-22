@@ -16,14 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag serverstatus_server
-
-      - name: Push the Docker image to Docker Hub
+      - name: Build the Docker image and Push the Docker image to Docker Hub
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
           docker login -u "$DOCKER_USERNAME" -p "$DOCKER_TOKEN"
-          docker tag serverstatus_server looprt/serverstatus_server
-          docker push looprt/serverstatus_server
+          docker buildx build --platform linux/amd64,linux/arm64 -t looprt/serverstatus_server:latest --push .
