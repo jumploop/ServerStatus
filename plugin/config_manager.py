@@ -233,7 +233,7 @@ class ConfigManager(object):
         print('```')
         print("\n")
         print(
-            'curl -L {0}/shell/serverstatus-agent.sh  -o serverstatus-agent.sh && chmod +x serverstatus-agent.sh && sudo ./serverstatus-agent.sh {1} {2} {3} {4}'.format(
+            'curl -L {0}/shell/serverstatus-agent.sh  -o serverstatus-agent.sh && chmod +x serverstatus-agent.sh && ./serverstatus-agent.sh {1} {2} {3} {4}'.format(
                 self.github_raw_url, self.ip, user, passwd, self.server_port
             )
         )
