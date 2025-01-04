@@ -30,10 +30,10 @@ pre_check() {
 }
 
 install_soft() {
-    (command -v yum >/dev/null 2>&1 && yum install "$*" -y) ||
-        (command -v apt >/dev/null 2>&1 && apt update && apt install "$*" -y) ||
-        (command -v pacman >/dev/null 2>&1 && pacman -Syu "$*") ||
-        (command -v apt-get >/dev/null 2>&1 && apt update && apt-get install "$*" -y)
+    (command -v yum >/dev/null 2>&1 && yum install "$@" -y) ||
+        (command -v apt >/dev/null 2>&1 && apt update && apt install "$@" -y) ||
+        (command -v pacman >/dev/null 2>&1 && pacman -Syu "$@") ||
+        (command -v apt-get >/dev/null 2>&1 && apt update && apt-get install "$@" -y)
 }
 
 install_base() {
