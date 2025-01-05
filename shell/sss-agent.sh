@@ -37,8 +37,7 @@ install_soft() {
 }
 
 install_base() {
-    (command -v git >/dev/null 2>&1 && command -v curl >/dev/null 2>&1 && command -v wget >/dev/null 2>&1 && command -v tar >/dev/null 2>&1) ||
-        (install_soft curl wget python3)
+    (command -v curl >/dev/null 2>&1 && command -v wget >/dev/null 2>&1) || install_soft curl wget
 }
 
 modify_agent_config() {
