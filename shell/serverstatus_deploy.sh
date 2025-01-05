@@ -5,6 +5,7 @@
 #   Description: Server Status 监控安装脚本
 #   Github: https://github.com/lidalao/ServerStatus
 #========================================================
+DOCKER_COMPOSE_RELEASE="https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)"
 
 GITHUB_RAW_URL="https://raw.githubusercontent.com/jumploop/ServerStatus/master"
 WORKDIR=/root/serverstatus
@@ -68,7 +69,7 @@ install_docker() {
     command -v docker-compose >/dev/null 2>&1
     if [[ $? != 0 ]]; then
         echo -e "正在安装 Docker Compose"
-        wget --no-check-certificate -O /usr/local/bin/docker-compose "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" >/dev/null 2>&1
+        wget --no-check-certificate -O /usr/local/bin/docker-compose ${DOCKER_COMPOSE_RELEASE} >/dev/null 2>&1
         if [[ $? != 0 ]]; then
             echo -e "${red}下载Compose失败${plain}"
             return 0
