@@ -18,8 +18,7 @@ RUN mv $WORK/ServerStatus-$BRANCH/* /
 # glibc env run
 FROM nginx:latest
 
-RUN rm -f /var/log/nginx/*
-#ln -sf /dev/null /var/log/nginx/access.log && ln -sf /dev/null /var/log/nginx/error.log
+RUN ln -sf /dev/null /var/log/nginx/access.log && ln -sf /dev/null /var/log/nginx/error.log
 RUN mkdir -p /ServerStatus/server/
 WORKDIR /ServerStatus/server/
 COPY --from=builder server /ServerStatus/server/
