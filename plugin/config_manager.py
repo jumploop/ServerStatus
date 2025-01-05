@@ -1,8 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: utf-8
-# Create by : https://github.com/lidalao/ServerStatus
-# 版本：0.0.1, 支持Python版本：2.7 to 3.9
-# 支持操作系统： Linux, OSX, FreeBSD, OpenBSD and NetBSD, both 32-bit and 64-bit architectures
 from __future__ import print_function
 import json
 import logging
@@ -18,17 +15,35 @@ import argparse
 from six.moves import input
 from threading import Timer
 
+# Python 2/3 兼容
+try:
+    # Python 2
+    STRING_TYPES = (str, unicode)
+except NameError:
+    # Python 3
+    STRING_TYPES = (str,)
+
+# 基础配置
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(levelname)-8s %(filename)s:%(lineno)s %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 
+# 常量定义
+DEFAULTS = {'port': 35601, 'type': 'kvm', 'location': 'us', 'monthstart': '1'}
+
+ACTIONS = {
+    '0': ('退出', 'exit'),
+    '1': ('查看', 'show'),
+    '2': ('添加', 'add'),
+    '3': ('删除', 'delete'),
+    '4': ('更新', 'update'),
+}
+
 
 class ConfigManager(object):
-
     def __init__(self, args):
-        logging.info('received args: %s', args)
         self.github_raw_url = (
             "https://raw.githubusercontent.com/jumploop/ServerStatus/master"
         )
@@ -36,217 +51,69 @@ class ConfigManager(object):
         self.port_file = "port.json"
         self.config_file = args.config
         self.restart_cmd = args.action
+
         if not os.path.isfile(self.config_file):
             logging.error("请在当前目录创建config.json!")
             sys.exit(1)
-        self.servers = self.get_config()
-        self.server_port = self.get_server_port()
-        self.ip = self.get_ip()
 
-    def run(self):
-        actions = {
-            '0': self.exit,
-            '1': self.show,
-            '2': self.add,
-            '3': self.delete,
-            '4': self.update,
-        }
-        print("\n")
-        print('- - - 欢迎使用最简洁的探针: Server Status - - -')
-        print(
-            '详细教程请参考：https://github.com/jumploop/ServerStatus/blob/master/doc/sss_plugin.md'
-        )
-        print("\n")
-        self._show()
-        print("\n")
+        self.servers = self._load_json(self.config_file)
+        self.server_port = self._get_port()
+        self.ip = self._get_ip()
 
-        print('>>>请输入操作标号：1.查看, 2.添加, 3.删除, 4.更新, 0.退出')
-        x = input()
-        if not is_number(x):
-            print('无效输入, 退出')
-            self.exit()
-        if x in actions:
-            actions.get(x)()
-        else:
-            print('无效输入, 退出')
-            self.exit()
+    def _load_json(self, file_path):
+        """安全加载JSON文件"""
+        try:
+            with open(file_path, 'r') as f:
+                return json.load(f, object_hook=unicode_convert)
+        except Exception as e:
+            logging.error("读取文件失败: %s", e)
+            raise
 
-    def exit(self):
-        """Exit the program"""
-        logging.info("感谢您的使用!")
-        sys.exit(0)
+    def _get_port(self):
+        """获取服务端口"""
+        try:
+            if os.path.isfile(self.port_file):
+                data = self._load_json(self.port_file)
+                return data.get('server_port', DEFAULTS['port'])
+        except Exception:
+            pass
+        return DEFAULTS['port']
 
-    def get_config(self):
-        """get the config from config.json"""
-        with open(self.config_file, "r") as f:
-            data = json.load(f, object_hook=unicode_convert)
-        return data
+    def _get_ip(self):
+        """获取IP地址"""
+        try:
+            return requests.get(self.ip_url, timeout=5).text.strip()
+        except Exception as e:
+            logging.error("获取IP失败: %s", e)
+            raise
 
-    def get_ip(self):
-        """get the ip address"""
-        ip = requests.get(self.ip_url).content.decode('utf8')
-        return ip
+    def _save_config(self):
+        """保存配置"""
+        self.servers['servers'].sort(key=lambda x: x['name'])
+        try:
+            with open(self.config_file, 'w') as f:
+                json.dump(self.servers, f, ensure_ascii=False, indent=2, sort_keys=True)
+        except Exception as e:
+            logging.error("保存配置失败: %s", e)
+            raise
 
-    def restart_server(self):
-        """Restart the server"""
-        exe_command(self.restart_cmd, shell=True)
+    def _get_input(self, prompt, default=None, validator=None):
+        """获取用户输入"""
+        while True:
+            value = input(prompt).strip()
+            if not value and default is not None:
+                return default
+            if not validator or validator(value):
+                return value
+            print("输入无效，请重试")
 
-    def get_server_port(self):
-        """获取探针服务端端口"""
-        if os.path.isfile(self.port_file):
-            with open(self.port_file, 'r') as file:
-                data = json.load(file, object_hook=unicode_convert)
-            return data.get('server_port')
-        return 35601
-
-    def add(self):
-        """添加节点配置"""
-        print('>>>请输入节点名字：')
-        node_name = input()
-        if not node_name:
-            print("输入有误")
-            self._back()
-            self.exit()
-
-        print('>>>请输入{0}类型：[{1}]'.format(node_name, "kvm"))
-        node_type = input()
-        print('>>>请输入{0}主机名：[{1}]'.format(node_name, node_name))
-        node_hostname = input()
-        print('>>>请输入{0}位置：[{1}]'.format(node_name, "us"))
-        node_location = input()
-        item = {}
-        item['monthstart'] = "1"
-        item['location'] = node_location or "us"
-        item['type'] = node_type or "kvm"
-        item['host'] = node_hostname or node_name
-        item['name'] = node_name
-        item['username'] = uuid.uuid4().hex
-        item['password'] = get_passwd()
-        self.servers['servers'].append(item)
-        self.save_config()
-
-        logging.info("操作完成，等待服务重启")
-        self.restart_server()
-        logging.info("添加成功!")
-        self._show()
-        print('>>>请复制以下命令在机器{0}安装agent服务'.format(item['name']))
-        self.how2agent(item['username'], item['password'])
-        self._back()
-
-    def update(self):
-        """更新节点信息"""
-        print("请输入需要更新的节点标号：")
-        idx = input()
-        index = int(idx)
-        if not is_number(idx) or len(self.servers['servers']) <= index:
-            print('无效输入,退出')
-            self._back()
-            self.exit()
-
-        item = self.servers['servers'][index]
-        print(
-            '--- 面板更换ip时，请复制以下命令在机器{0}安装agent服务 ---'.format(
-                item['name']
-            )
-        )
-        self.how2agent(item['username'], item['password'])
-
-        print(
-            '>>>请输入{0}新名字：[{1}] *中括号内为原值，按回车表示不做修改*'.format(
-                item['name'], item['name']
-            )
-        )
-        node_name = input()
-        if node_name:
-            self.servers['servers'][int(idx)]['name'] = node_name
-
-        print('>>>请输入{0}新位置：[{1}]'.format(item['name'], item['location']))
-        node_location = input()
-        if node_location:
-            self.servers['servers'][int(idx)]['location'] = node_location
-
-        print('>>>请输入{0}新类型：[{1}]'.format(item['name'], item['type']))
-        node_type = input()
-        if node_type:
-            self.servers['servers'][int(idx)]['type'] = node_type
-
-        print(
-            '>>>请输入{0}新的月流量起始日：[{1}]'.format(
-                item['name'], item['monthstart']
-            )
-        )
-        monthstart = input()
-        if monthstart:
-            self.servers['servers'][index]['monthstart'] = monthstart
-
-        if not any([node_name, node_location, node_type, monthstart]):
-            print('未做任何更新，直接返回')
-            self._back()
-            self.exit()
-        self.save_config()
-        logging.info("操作完成，等待服务重启")
-        self.restart_server()
-        logging.info("更新成功!")
-        self._show()
-        self._back()
-
-    def delete(self):
-        """删除节点信息"""
-        print(">>>请输入需要删除的节点标号：")
-        idx = input()
-        index = int(idx)
-        if not is_number(idx) or len(self.servers['servers']) <= index:
-            print('无效输入,退出')
-            self._back()
-            self.exit()
-        print(
-            '>>>请确认你需要删除的节点：{0}？ [Y/n]'.format(
-                self.servers['servers'][index]['name']
-            )
-        )
-        confirm = input()
-        if confirm in "nN":
-            print("取消删除")
-            self._back()
-            self.exit()
-
-        del self.servers['servers'][index]
-        self.save_config()
-        logging.info("操作完成，等待服务重启")
-        self.restart_server()
-        logging.info("删除成功!")
-        self._show()
-        self._back()
-
-    def save_config(self):
-        """Save the configuration"""
-        self.servers['servers'] = sorted(
-            self.servers['servers'], key=lambda d: d['name']
-        )
-        with open(self.config_file, "w") as file:
-            file.write(
-                json.dumps(self.servers, ensure_ascii=False, indent=2, sort_keys=True)
-            )
-
-    def how2agent(self, user, passwd):
-        """返回安装agent的命令"""
-        print('```')
-        print("\n")
-        print(
-            'curl -L {0}/shell/serverstatus-agent.sh  -o serverstatus-agent.sh && chmod +x serverstatus-agent.sh && ./serverstatus-agent.sh {1} {2} {3} {4}'.format(
-                self.github_raw_url, self.ip, user, passwd, self.server_port
-            )
-        )
-        print("\n")
-        print('```')
-
-    def _show(self):
+    def show(self):
         """展示现有的监控节点"""
         print("---你的监控节点如下---\n")
         if len(self.servers['servers']) == 0:
             print('>>> 你好, 暂时没发现你有任何监控节点! <<<\n')
             print("-----------------")
-            self.exit()
+            return
 
         for idx, item in enumerate(self.servers['servers']):
             print(
@@ -258,14 +125,172 @@ class ConfigManager(object):
         print("\n")
         print("-----------------")
 
-    def show(self):
-        self._show()
-        self._back()
+    def add(self):
+        """添加节点"""
+        try:
+            # 获取节点名
+            name = self._get_input(
+                '>>>请输入节点名字：\n',
+                validator=lambda x: x
+                                    and not any(s['name'] == x for s in self.servers['servers']),
+            )
 
-    def _back(self):
-        print(">>>按任意键返回上级菜单")
-        input()
-        self.run()
+            # 创建节点
+            node = {
+                'name': name,
+                'type': self._get_input(
+                    '>>>请输入{0}类型：[{1}]\n'.format(name, DEFAULTS['type']),
+                    default=DEFAULTS['type'],
+                ),
+                'host': self._get_input(
+                    '>>>请输入{0}主机名：[{1}]\n'.format(name, name), default=name
+                ),
+                'location': self._get_input(
+                    '>>>请输入{0}位置：[{1}]\n'.format(name, DEFAULTS['location']),
+                    default=DEFAULTS['location'],
+                ),
+                'monthstart': DEFAULTS['monthstart'],
+                'username': uuid.uuid4().hex,
+                'password': get_passwd(),
+            }
+
+            # 保存并重启
+            self.servers['servers'].append(node)
+            self._save_and_restart()
+
+            # 显示安装命令
+            print('>>>请复制以下命令在机器{0}安装agent服务'.format(node['name']))
+            self._show_agent_cmd(node)
+
+        except Exception as e:
+            logging.error("添加节点失败: %s", e)
+
+    def update(self):
+        """更新节点"""
+        try:
+            # 获取节点索引
+            idx = self._get_node_index()
+            if idx is None:
+                return
+
+            node = self.servers['servers'][idx]
+            self._show_agent_cmd(node)
+
+            # 获取更新
+            updates = {}
+            fields = {
+                'name': '名字',
+                'location': '位置',
+                'type': '类型',
+                'monthstart': '月流量起始日',
+            }
+
+            for field, desc in fields.items():
+                value = self._get_input(
+                    '>>>请输入{0}新{1}：[{2}]\n'.format(node['name'], desc, node[field])
+                )
+                if value:
+                    updates[field] = value
+
+            if updates:
+                self.servers['servers'][idx].update(updates)
+                self._save_and_restart()
+            else:
+                print('未做任何更新')
+
+        except Exception as e:
+            logging.error("更新节点失败: %s", e)
+
+    def delete(self):
+        """删除节点"""
+        try:
+            idx = self._get_node_index()
+            if idx is None:
+                return
+
+            node = self.servers['servers'][idx]
+            if (
+                    self._get_input(
+                        '>>>请确认删除节点{0}？[y/N]\n'.format(node['name']), default='n'
+                    ).lower()
+                    != 'y'
+            ):
+                print("取消删除")
+                return
+
+            del self.servers['servers'][idx]
+            self._save_and_restart()
+
+        except Exception as e:
+            logging.error("删除节点失败: %s", e)
+
+    def _get_node_index(self):
+        """获取有效的节点索引"""
+        try:
+            idx = self._get_input(
+                "请输入节点标号：\n",
+                validator=lambda x: x.isdigit()
+                                    and 0 <= int(x) < len(self.servers['servers']),
+            )
+            return int(idx)
+        except Exception:
+            return None
+
+    def _save_and_restart(self):
+        """保存配置并重启"""
+        self._save_config()
+        self._restart_server()
+        logging.info(">>>配置已保存，服务已重启")
+
+    def _restart_server(self):
+        """重启服务"""
+        try:
+            exe_command(self.restart_cmd, shell=True)
+        except Exception as e:
+            logging.error("重启服务失败: %s", e)
+
+    def _show_agent_cmd(self, node):
+        """显示agent安装命令"""
+        print('```')
+        print(
+            'curl -L {0}/shell/serverstatus-agent.sh -o serverstatus-agent.sh && '
+            'chmod +x serverstatus-agent.sh && '
+            './serverstatus-agent.sh {1} {2} {3} {4}'.format(
+                self.github_raw_url,
+                self.ip,
+                node['username'],
+                node['password'],
+                self.server_port,
+            )
+        )
+        print('```')
+
+    def run(self):
+        """运行主程序"""
+        while True:
+            print("\n")
+            print('- - - 欢迎使用最简洁的探针: Server Status - - -')
+            print(
+                '详细教程请参考：https://github.com/jumploop/ServerStatus/blob/master/doc/sss_plugin.md'
+            )
+            print("\n")
+            self.show()
+            action = self._get_input(
+                '>>>请输入操作标号：'
+                + ', '.join(
+                    '{0}.{1}'.format(k, v[0]) for k, v in sorted(ACTIONS.items())
+                )
+                + '\n',
+                validator=lambda x: x in ACTIONS,
+            )
+
+            if action == '0':
+                break
+
+            method = getattr(self, ACTIONS[action][1])
+            method()
+
+        logging.info("感谢使用!")
 
 
 def exe_command(cmdstr, timeout=1800, shell=False):
@@ -285,7 +310,7 @@ def exe_command(cmdstr, timeout=1800, shell=False):
         shellresult = (
             result if isinstance(result, str) else str(result, encoding='utf-8')
         )
-        logging.info('execute shell [%s], shell result is\n%s', cmdstr, shellresult)
+        logging.info('execute shell [%s]\n%s', cmdstr, shellresult)
         return retcode, shellresult
     finally:
         timer.cancel()
@@ -312,12 +337,6 @@ def unicode_convert(data, encode="utf-8"):
 
     # If it's anything else, return it in its original form
     return data
-
-
-def is_number(value):
-    if hasattr(value, 'isnumeric'):
-        return value.isnumeric()
-    return value.isdigit()
 
 
 def get_passwd():
