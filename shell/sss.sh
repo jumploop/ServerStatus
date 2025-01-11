@@ -7,7 +7,7 @@
 #========================================================
 DOCKER_COMPOSE_RELEASE="https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)"
 GITHUB_RAW_URL="https://raw.githubusercontent.com/jumploop/ServerStatus/master"
-WORKDIR=/root/sss
+WORKDIR=/opt/sss
 [ ! -d $WORKDIR ] && mkdir -p $WORKDIR
 
 red='\033[0;31m'

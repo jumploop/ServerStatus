@@ -8,7 +8,7 @@
 DOCKER_COMPOSE_RELEASE="https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)"
 
 GITHUB_RAW_URL="https://raw.githubusercontent.com/jumploop/ServerStatus/master"
-WORKDIR=/root/serverstatus
+WORKDIR=/opt/serverstatus
 [ ! -d $WORKDIR ] && mkdir -p $WORKDIR
 
 # 拉取 ServerStatus
