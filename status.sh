@@ -118,12 +118,13 @@ Service_Server_Status_client() {
 Installation_dependency() {
   mode=$1
   if [[ ${release} == "centos" ]]; then
+    yum clean all
     yum makecache
     yum -y install unzip
     yum -y install python3 >/dev/null 2>&1 || yum -y install python
     [[ ${mode} == "server" ]] && yum -y groupinstall "Development Tools" && yum -y install gcc gcc-c++ make libcurl-devel
   elif [[ ${release} == "debian" ]]; then
-    apt -y update
+    apt update
     apt -y install unzip
     apt -y install python3 >/dev/null 2>&1 || apt -y install python
     [[ ${mode} == "server" ]] && apt -y install build-essential gcc g++ make libcurl4-openssl-dev
@@ -640,13 +641,19 @@ Install_caddy() {
     [[ ! -e /usr/bin/caddy ]] && {
       if [[ ${release} == "debian" ]]; then
         apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
-        curl -1sLf "https://dl.cloudsmith.io/public/caddy/stable/gpg.key" | tee /etc/apt/trusted.gpg.d/caddy-stable.asc
-        curl -1sLf "https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt" | tee /etc/apt/sources.list.d/caddy-stable.list
-        apt update && apt install caddy
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+        apt update && apt install caddy -y
       elif [[ ${release} == "centos" ]]; then
-        yum install yum-plugin-copr -y
-        yum copr enable @caddy/caddy -y
-        yum install caddy -y
+        if grep 7 /etc/centos-release;then
+          yum install yum-plugin-copr -y
+          yum copr enable @caddy/caddy -y
+          yum install caddy -y
+        else
+          dnf install 'dnf-command(copr)'
+          dnf copr enable @caddy/caddy
+          dnf install caddy
+        fi
       elif [[ ${release} == "archlinux" ]]; then
         pacman -Sy caddy --noconfirm
       fi
