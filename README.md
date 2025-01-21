@@ -25,6 +25,8 @@
 
 支持操作系统：Debian/Ubuntu,Centos/Redhat,archlinux
 
+PS：部署完如果有防火墙，请放行对应端口，否则无法访问，或者关闭防火墙（不建议）
+
 #### 一键脚本部署:
 
 ```bash
@@ -34,6 +36,8 @@ wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/Server
 部署成功后，web 服务地址：http://ip:8888
 
 # 容器部署：
+
+PS：部署完如果有防火墙，请放行对应端口，否则无法访问，或者关闭防火墙（不建议）
 
 【服务端】：
 
@@ -46,6 +50,19 @@ docker run -d --restart=always --name=serverstatus -v ~/serverstatus-config.json
 
 `Docker-compose(推荐)`: docker-compose up -d
 ```
+
+【客户端】：
+
+```bash
+wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/cppla/ServerStatus/master/clients/client-linux.py' && nohup python3 client-linux.py SERVER={$SERVER} USER={$USER} PASSWORD={$PASSWORD} >/dev/null 2>&1 &
+
+eg:
+wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/cppla/ServerStatus/master/clients/client-linux.py' && nohup python3 client-linux.py SERVER=45.79.67.132 USER=s04  >/dev/null 2>&1 &
+```
+
+**以下一键部署脚本，由本人维护，放心使用**
+
+> PS: 部署完服务端，会执行节点管理脚本，添加和删除要监控的节点，请确保服务器可以访问。
 
 服务端一键脚本容器部署：
 
@@ -77,18 +94,9 @@ pushplus 上下线提醒服务端一键脚本容器部署：
 wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/serverstatus_pushplus_deploy.sh && chmod +x serverstatus_pushplus_deploy.sh && bash serverstatus_pushplus_deploy.sh YOUR_PP_BOT_TOKEN
 ```
 
-【客户端】：
-
-```bash
-wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/cppla/ServerStatus/master/clients/client-linux.py' && nohup python3 client-linux.py SERVER={$SERVER} USER={$USER} PASSWORD={$PASSWORD} >/dev/null 2>&1 &
-
-eg:
-wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/cppla/ServerStatus/master/clients/client-linux.py' && nohup python3 client-linux.py SERVER=45.79.67.132 USER=s04  >/dev/null 2>&1 &
-```
-
 部署成功后，web 服务地址：http://ip:8080
 
-# 节点管理
+# 节点管理，生成一键客户端部署命令
 
 通过 config_manager.py 脚本，可以很方便的进行节点的增删改查操作。特别在添加新节点时，会有提示如何在新节点安装对应的 agent 服务。节点管理时，把 config_manager.py 放到和 config.json 同一目录，运行 `python3 config_manager.py` 即可,默认配置文件 config.json 和脚本在同一目录，ServerStatus 默认服务重启命令为`docker-compose restart`。支持传入重启 ServerStatus 服务命令和 config.json 配置文件路径，改成你对应的服务启动方式和配置文件路径，例如用 systemd,则传入`systemctl restart ServerStatus`。
 
@@ -105,6 +113,9 @@ python3 config_manager.py -a xxx -c xxx
 eg:
 python3 config_manager.py -a 'systemctl restart ServerStatus' -c config.json
 ```
+
+效果如下：
+![添加节点](image/add_node.png)
 
 # 主题：
 
