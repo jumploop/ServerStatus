@@ -3,7 +3,7 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: looprt/serverstatus_server
+    image: jumploop/serverstatus:latest
     container_name: serverstatus
     restart: unless-stopped
     networks:

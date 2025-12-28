@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: looprt/serverstatus_server:latest
+    image: jumploop/serverstatus:latest
     container_name: sss
     restart: unless-stopped
     volumes:
