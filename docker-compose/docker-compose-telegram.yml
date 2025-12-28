@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-telegram
-    image: looprt/serverstatus_bot
+    image: jumploop/serverstatus_bot
     container_name: bot4sss
     restart: unless-stopped
     networks:

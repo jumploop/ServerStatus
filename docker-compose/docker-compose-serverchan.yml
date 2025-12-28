@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-serverchan
-    image: looprt/serverstatus_bot:serverchan
+    image: jumploop/serverstatus_bot:serverchan
     container_name: bot4sss
     restart: unless-stopped
     networks:

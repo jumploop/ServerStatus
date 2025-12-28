@@ -19,7 +19,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-pushplus
-    image: looprt/serverstatus_bot:pushplus
+    image: jumploop/serverstatus_bot:pushplus
     container_name: bot4sss
     restart: unless-stopped
     networks:
