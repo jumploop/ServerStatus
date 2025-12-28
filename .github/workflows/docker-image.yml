@@ -1,26 +1,110 @@
-name: Docker Image CI
+name: Build and Push Docker Image
 
 on:
   push:
-    branches: ["master"]
+    branches: [ master ] # 构建的分支，可以根据需要修改
+    paths:
+      - 'project_version'  # 确保路径准确，不使用通配符
   pull_request:
-    branches: ["master"]
+    branches: [ master ] # 触发构建的分支，可以根据需要修改
+  workflow_dispatch: # 添加 workflow_dispatch 事件，支持手动触发
 
 jobs:
-  build-and-push:
+  build:
+    name: Push Docker image to multiple registries
     runs-on: ubuntu-latest
-
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
     steps:
-      - name: Checkout
+      - name: Debug Environment
+        run: |
+          echo "工作目录内容:"
+          ls -la
+          echo "project_version 文件内容:"
+          cat project_version || echo "文件不存在"
+
+      - name: Check if version changed
+        id: check-version
+        run: |
+          # 获取当前版本号
+          if [ -f "project_version" ]; then
+            CURRENT_VERSION=$(cat project_version)
+            echo "Current version: $CURRENT_VERSION"
+
+            # 获取上一个提交中的版本号
+            git fetch origin main
+            if git show HEAD~1:project_version &>/dev/null; then
+              PREVIOUS_VERSION=$(git show HEAD~1:project_version)
+              echo "Previous version from commit: $PREVIOUS_VERSION"
+
+              if [[ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]]; then
+                echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+                echo "version_changed=true" >> $GITHUB_OUTPUT
+                echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+              else
+                echo "Version unchanged"
+                echo "version_changed=false" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "Cannot find previous version, assuming first release"
+              echo "version_changed=true" >> $GITHUB_OUTPUT
+              echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "project_version file not found"
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Check out the repo
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-      - name: Build the Docker image and Push the Docker image to Docker Hub
-        env:
-          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-        run: |
-          docker login -u "$DOCKER_USERNAME" -p "$DOCKER_TOKEN"
-          docker buildx build --platform linux/amd64,linux/arm64 -t looprt/serverstatus_server:latest --push .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ github.repository }}
+            ghcr.io/${{ github.repository }}
+          tags: |
+            latest
+            ${{ steps.check-version.outputs.current_version }}
+            ${{ github.sha }}
+      - name: Build and push Docker images
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/${{ github.repository }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
