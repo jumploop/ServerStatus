@@ -1,8 +1,7 @@
 # The Dockerfile for build localhost source, not git repo
-FROM debian:buster AS builder
+FROM debian:bookworm AS builder
 
-LABEL maintainer="cppla https://cpp.la"
-
+LABEL maintainer="cppla <https://cpp.la>"
 
 RUN apt-get update -y && apt-get -y install gcc g++ make libcurl4-openssl-dev
 
@@ -17,10 +16,11 @@ RUN pwd && ls -a
 FROM nginx:latest
 
 RUN mkdir -p /ServerStatus/server/ && ln -sf /dev/null /var/log/nginx/access.log && ln -sf /dev/null /var/log/nginx/error.log
+
 COPY --from=builder server /ServerStatus/server/
 COPY --from=builder web /usr/share/nginx/html/
 
-# china time
+# china time 
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 

@@ -6,13 +6,11 @@
 [![Python Support](https://img.shields.io/badge/python-3.6%2B%20-blue.svg)](https://github.com/cppla/ServerStatus)
 [![C++ Compiler](http://img.shields.io/badge/C++-GNU-blue.svg?style=flat&logo=cplusplus)](https://github.com/cppla/ServerStatus)
 [![License](https://img.shields.io/badge/license-MIT-4EB1BA.svg?style=flat-square)](https://github.com/cppla/ServerStatus)
-[![Version](https://img.shields.io/badge/Version-Build%201.1.5-red)](https://github.com/cppla/ServerStatus)
+[![Version](https://img.shields.io/badge/Version-Build%201.1.7-red)](https://github.com/cppla/ServerStatus)
 
-![Latest Host Version](https://dl.cpp.la/Archive/serverstatus_1.1.5.png)
+![Latest Host Version](https://dl.cpp.la/Archive/serverstatus_1_1_7.png)
 
-`Watchdog触发式告警，interval只是为了防止频繁收到报警信息造成的骚扰，并不是探测间隔。值得注意的是，Exprtk库默认使用窄字符类型，中文等Unicode字符无法解析计算，等待修复。 `
-
-# 目录：
+`Watchdog触发式告警，interval只是为了防止频繁收到报警，并不是探测间隔。值得注意的是Exprtk使用窄字符类型，中文等Unicode字符无法解析计算。 AI已经能够取代大部分程序员`
 
 - clients 客户端文件
 - server 服务端文件
@@ -148,11 +146,11 @@ cd ServerStatus/server && make
 ! watchdog interval 最小通知间隔
 ! watchdog callback 可自定义为Post方法的URL，告警内容将拼接其后并发起回调
 
-! watchdog callback Telegram: https://api.telegram.org/bot你自己的密钥/sendMessage?parse_mode=HTML&disable_web_page_preview=true&chat_id=你自己的标识&text=
-! watchdog callback Server酱: https://sctapi.ftqq.com/你自己的密钥.send?title=ServerStatus&desp=
-! watchdog callback PushDeer: https://api2.pushdeer.com/message/push?pushkey=你自己的密钥&text=
-! watchdog callback BasicAuth: https://用户名:密码@你自己的域名/api/push?message=
-! watchdog callback pushplus: https://www.pushplus.plus/send?token=你的token&title=ServerStatus&content=XXX&template=html
+! Telegram: https://api.telegram.org/bot你自己的密钥/sendMessage?parse_mode=HTML&disable_web_page_preview=true&chat_id=你自己的标识&text=
+! Server酱: https://sctapi.ftqq.com/你自己的密钥.send?title=ServerStatus&desp=
+! PushDeer: https://api2.pushdeer.com/message/push?pushkey=你自己的密钥&text=
+! HttpBasicAuth: https://用户名:密码@你自己的域名/api/push?message=
+! pushplus: https://www.pushplus.plus/send?token=你的token&title=ServerStatus&content=XXX&template=html
 ```
 
 关于 Server 酱的具体使用可以查看[Server 酱使用方法](https://zhuanlan.zhihu.com/p/713331404)
@@ -173,16 +171,25 @@ cd ServerStatus/server && make
 	],
 	"monitors": [
 		{
-			"name": "监测网站，默认为一天在线率",
-			"host": "https://www.baidu.com",
-			"interval": 1200,
+			"name": "抖音",
+			"host": "https://www.douyin.com",
+			"interval": 600,
 			"type": "https"
 		},
 		{
-			"name": "监测tcp服务端口",
-			"host": "1.1.1.1:80",
-			"interval": 1200,
-			"type": "tcp"
+			"name": "百度",
+			"host": "https://www.baidu.com",
+			"interval": 600,
+			"type": "https"
+		}
+	],
+	"sslcerts": [
+		{
+			"name": "demo域名",
+			"domain": "https://demo.example.com",
+			"port": 443,
+			"interval": 600,
+			"callback": "https://yourSMSurl"
 		}
 	],
 	"watchdog":
@@ -259,32 +266,39 @@ web-dir 参数为上一步设置的网站根目录，务必修改成自己网站
 
 客户端有两个版本，client-linux 为普通 linux，client-psutil 为跨平台版，普通版不成功，换成跨平台版即可。
 
-#### 一、client-linux 版配置：
-
-1、vim client-linux.py, 修改 SERVER 地址，username 帐号， password 密码  
-2、python3 client-linux.py 运行即可。
-
-#### 二、client-psutil 版配置:
-
-1、安装 psutil 跨平台依赖库
+#### client-linux.py Linux 版
 
 ```bash
-`Debian/Ubuntu`: apt -y install python3-pip && pip3 install psutil
-`Centos/Redhat`: yum -y install python3-pip gcc python3-devel && pip3 install psutil
-`Windows`: https://pypi.org/project/psutil/
+# 1、修改 client-linux.py 中的 SERVER、username、password
+python3 client-linux.py
+# 2、以传参的方式启动
+python3 client-linux.py SERVER=127.0.0.1 USER=s01
 ```
 
-2、vim client-psutil.py, 修改 SERVER 地址，username 帐号， password 密码  
-3、python3 client-psutil.py 运行即可。
+#### client-psutil.py 跨平台版
 
-服务器和客户端自行加入开机启动，或进程守护，或后台方式运行。 例如： nohup python3 client-linux.py &
+```bash
+# 安装依赖
+# Debian/Ubuntu
+apt -y install python3-psutil
+# Centos/Redhat
+yum -y install python3-pip gcc python3-devel && pip3 install psutil
+# Windows: 从 https://pypi.org/project/psutil/ 安装
+```
 
-`extra scene (run web/ssview.py)`
-![Shell View](https://dl.cpp.la/Archive/serverstatus-shell.png?version=2023)
+#### 后台运行与开机启动
+
+```bash
+# 后台运行
+nohup python3 client-linux.py &
+
+# 开机启动 (crontab -e)
+@reboot /usr/bin/python3 /path/to/client-linux.py
+```
 
 ## 集成新功能
 
-1. https://github.com/lidalao/ServerStatus
+https://github.com/lidalao/ServerStatus
 
 #### 介绍
 
@@ -313,8 +327,3 @@ wget --no-check-certificate -O sss.sh https://raw.githubusercontent.com/jumploop
 - mojeda: https://github.com/mojeda
 - mojeda's ServerStatus: https://github.com/mojeda/ServerStatus
 - BlueVM's project: http://www.lowendtalk.com/discussion/comment/169690#Comment_169690
-- lidalao：https://github.com/lidalao/ServerStatus
-
-# Jetbrains
-
-<a href="https://www.jetbrains.com/?from=ServerStatus"><img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_square.png" width="100px"></a>

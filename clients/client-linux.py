@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # coding: utf-8
-# Update by : https://github.com/cppla/ServerStatus, Update date: 20220530
-# 版本：1.0.3, 支持Python版本：2.7 to 3.10
+# Update by : https://github.com/cppla/ServerStatus, Update date: 20250902
+# 版本：1.1.0, 支持Python版本：3.6+
 # 支持操作系统： Linux, OSX, FreeBSD, OpenBSD and NetBSD, both 32-bit and 64-bit architectures
-# ONLINE_PACKET_HISTORY_LEN， 探测间隔1200s，记录24小时在线率（72）；探测时间300s，记录24小时（288）；探测间隔60s，记录7天（10080）
 # 说明: 默认情况下修改server和user就可以了。丢包率监测方向可以自定义，例如：CU = "www.facebook.com"。
 
 SERVER = "127.0.0.1"
@@ -18,11 +17,9 @@ CM = "cm.tz.cloudcpp.com"
 PROBEPORT = 80
 PROBE_PROTOCOL_PREFER = "ipv4"  # ipv4, ipv6
 PING_PACKET_HISTORY_LEN = 100
-ONLINE_PACKET_HISTORY_LEN = 72
 INTERVAL = 1
 
 import socket
-import ssl
 import time
 import timeit
 import re
@@ -32,12 +29,9 @@ import json
 import errno
 import subprocess
 import threading
+import platform
+from queue import Queue
 import argparse
-
-if sys.version_info.major == 3:
-    from queue import Queue
-elif sys.version_info.major == 2:
-    from Queue import Queue
 
 
 def get_uptime():
@@ -138,7 +132,7 @@ def liuliang():
     with open('/proc/net/dev') as f:
         for line in f.readlines():
             netinfo = re.findall(
-                '([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
+                r'([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)',
                 line,
             )
             if netinfo:
@@ -383,123 +377,70 @@ def get_realtime_data():
 
 
 def _monitor_thread(name, host, interval, type):
-    lostPacket = 0
-    packet_queue = Queue(maxsize=ONLINE_PACKET_HISTORY_LEN)
     while True:
         if name not in monitorServer.keys():
             break
-        if packet_queue.full():
-            if packet_queue.get() == 0:
-                lostPacket -= 1
         try:
-            if type == "http":
-                address = host.replace("http://", "")
-                m = timeit.default_timer()
-                if PROBE_PROTOCOL_PREFER == 'ipv4':
-                    IP = socket.getaddrinfo(address, None, socket.AF_INET)[0][4][0]
+            # 1) 解析目标 host 与端口
+            if type == 'http':
+                addr = str(host).replace('http://', '')
+                addr = addr.split('/', 1)[0]
+                port = 80
+                if ':' in addr and not addr.startswith('['):
+                    a, p = addr.rsplit(':', 1)
+                    if p.isdigit():
+                        addr, port = a, int(p)
+            elif type == 'https':
+                addr = str(host).replace('https://', '')
+                addr = addr.split('/', 1)[0]
+                port = 443
+                if ':' in addr and not addr.startswith('['):
+                    a, p = addr.rsplit(':', 1)
+                    if p.isdigit():
+                        addr, port = a, int(p)
+            elif type == 'tcp':
+                addr = str(host)
+                if addr.startswith('[') and ']' in addr:
+                    a = addr[1 : addr.index(']')]
+                    rest = addr[addr.index(']') + 1 :]
+                    if rest.startswith(':') and rest[1:].isdigit():
+                        addr, port = a, int(rest[1:])
+                    else:
+                        raise Exception('bad tcp target')
                 else:
-                    IP = socket.getaddrinfo(address, None, socket.AF_INET6)[0][4][0]
-                monitorServer[name]["dns_time"] = int(
-                    (timeit.default_timer() - m) * 1000
+                    a, p = addr.rsplit(':', 1)
+                    addr, port = a, int(p)
+            else:
+                time.sleep(interval)
+                continue
+
+            # 2) 解析 IP（按偏好族）
+            IP = addr
+            if addr.count(':') < 1:  # 非纯 IPv6
+                try:
+                    if PROBE_PROTOCOL_PREFER == 'ipv4':
+                        IP = socket.getaddrinfo(addr, None, socket.AF_INET)[0][4][0]
+                    else:
+                        IP = socket.getaddrinfo(addr, None, socket.AF_INET6)[0][4][0]
+                except Exception:
+                    pass
+
+            # 3) 建连耗时（timeout=1s），ECONNREFUSED 也计入
+            try:
+                b = timeit.default_timer()
+                socket.create_connection((IP, port), timeout=1).close()
+                monitorServer[name]["latency"] = int(
+                    (timeit.default_timer() - b) * 1000
                 )
-                m = timeit.default_timer()
-                k = socket.create_connection((IP, 80), timeout=6)
-                monitorServer[name]["connect_time"] = int(
-                    (timeit.default_timer() - m) * 1000
-                )
-                m = timeit.default_timer()
-                k.sendall(
-                    "GET / HTTP/1.2\r\nHost:{}\r\nUser-Agent:ServerStatus/cppla\r\nConnection:close\r\n\r\n".format(
-                        address
-                    ).encode(
-                        'utf-8'
+            except socket.error as error:
+                if getattr(error, 'errno', None) == errno.ECONNREFUSED:
+                    monitorServer[name]["latency"] = int(
+                        (timeit.default_timer() - b) * 1000
                     )
-                )
-                response = b""
-                while True:
-                    data = k.recv(4096)
-                    if not data:
-                        break
-                    response += data
-                http_code = response.decode('utf-8').split('\r\n')[0].split()[1]
-                monitorServer[name]["download_time"] = int(
-                    (timeit.default_timer() - m) * 1000
-                )
-                k.close()
-                if http_code not in ['200', '204', '301', '302', '401']:
-                    raise Exception("http code not in 200, 204, 301, 302, 401")
-            elif type == "https":
-                context = ssl._create_unverified_context()
-                address = host.replace("https://", "")
-                m = timeit.default_timer()
-                if PROBE_PROTOCOL_PREFER == 'ipv4':
-                    IP = socket.getaddrinfo(address, None, socket.AF_INET)[0][4][0]
                 else:
-                    IP = socket.getaddrinfo(address, None, socket.AF_INET6)[0][4][0]
-                monitorServer[name]["dns_time"] = int(
-                    (timeit.default_timer() - m) * 1000
-                )
-                m = timeit.default_timer()
-                k = socket.create_connection((IP, 443), timeout=6)
-                monitorServer[name]["connect_time"] = int(
-                    (timeit.default_timer() - m) * 1000
-                )
-                m = timeit.default_timer()
-                kk = context.wrap_socket(k, server_hostname=address)
-                kk.sendall(
-                    "GET / HTTP/1.2\r\nHost:{}\r\nUser-Agent:ServerStatus/cppla\r\nConnection:close\r\n\r\n".format(
-                        address
-                    ).encode(
-                        'utf-8'
-                    )
-                )
-                response = b""
-                while True:
-                    data = kk.recv(4096)
-                    if not data:
-                        break
-                    response += data
-                http_code = response.decode('utf-8').split('\r\n')[0].split()[1]
-                monitorServer[name]["download_time"] = int(
-                    (timeit.default_timer() - m) * 1000
-                )
-                kk.close()
-                k.close()
-                if http_code not in ['200', '204', '301', '302', '401']:
-                    raise Exception("http code not in 200, 204, 301, 302, 401")
-            elif type == "tcp":
-                m = timeit.default_timer()
-                if PROBE_PROTOCOL_PREFER == 'ipv4':
-                    IP = socket.getaddrinfo(host.split(":")[0], None, socket.AF_INET)[
-                        0
-                    ][4][0]
-                else:
-                    IP = socket.getaddrinfo(host.split(":")[0], None, socket.AF_INET6)[
-                        0
-                    ][4][0]
-                monitorServer[name]["dns_time"] = int(
-                    (timeit.default_timer() - m) * 1000
-                )
-                m = timeit.default_timer()
-                k = socket.create_connection((IP, int(host.split(":")[1])), timeout=6)
-                monitorServer[name]["connect_time"] = int(
-                    (timeit.default_timer() - m) * 1000
-                )
-                m = timeit.default_timer()
-                k.send(b"GET / HTTP/1.2\r\n\r\n")
-                k.recv(1024)
-                monitorServer[name]["download_time"] = int(
-                    (timeit.default_timer() - m) * 1000
-                )
-                k.close()
-            packet_queue.put(1)
-        except Exception as e:
-            lostPacket += 1
-            packet_queue.put(0)
-        if packet_queue.qsize() > 5:
-            monitorServer[name]["online_rate"] = (
-                1 - float(lostPacket) / packet_queue.qsize()
-            )
+                    monitorServer[name]["latency"] = 0
+        except Exception:
+            monitorServer[name]["latency"] = 0
         time.sleep(interval)
 
 
@@ -527,7 +468,9 @@ if __name__ == '__main__':
         parser.add_argument(
             '-pw', '--passwd', default=PASSWORD, help='Server user passwd'
         )
-        parser.add_argument('-i', '--interval', default=INTERVAL, help='Server interval')
+        parser.add_argument(
+            '-i', '--interval', default=INTERVAL, help='Server interval'
+        )
         args = parser.parse_args()
         SERVER, PORT, USER, PASSWORD, INTERVAL = (
             args.server,
@@ -575,10 +518,8 @@ if __name__ == '__main__':
                         jdata = json.loads(i[i.find("{") : i.find("}") + 1])
                         monitorServer[jdata.get("name")] = {
                             "type": jdata.get("type"),
-                            "dns_time": 0,
-                            "connect_time": 0,
-                            "download_time": 0,
-                            "online_rate": 1,
+                            "host": jdata.get("host"),
+                            "latency": 0,
                         }
                         t = threading.Thread(
                             target=_monitor_thread,
@@ -640,10 +581,51 @@ if __name__ == '__main__':
                 array['tcp'], array['udp'], array['process'], array['thread'] = tupd()
                 array['io_read'] = diskIO.get("read")
                 array['io_write'] = diskIO.get("write")
-                array['custom'] = "<br>".join(
-                    f"{k}\\t解析: {v['dns_time']}\\t连接: {v['connect_time']}\\t下载: {v['download_time']}\\t在线率: <code>{v['online_rate']*100:.1f}%</code>"
-                    for k, v in monitorServer.items()
-                )
+                # report OS (normalized)
+                try:
+                    sysname = platform.system().lower()
+                    if sysname.startswith('linux'):
+                        os_name = 'linux'
+                        # try distro from os-release
+                        try:
+                            with open('/etc/os-release') as f:
+                                for line in f:
+                                    if line.startswith('ID='):
+                                        val = (
+                                            line.strip()
+                                            .split('=', 1)[1]
+                                            .strip()
+                                            .strip('"')
+                                        )
+                                        if val:
+                                            os_name = val
+                                        break
+                        except Exception:
+                            pass
+                    elif sysname.startswith('darwin'):
+                        os_name = 'darwin'
+                    elif sysname.startswith('freebsd'):
+                        os_name = 'freebsd'
+                    elif sysname.startswith('openbsd'):
+                        os_name = 'openbsd'
+                    elif sysname.startswith('netbsd'):
+                        os_name = 'netbsd'
+                    else:
+                        os_name = sysname or 'unknown'
+                except Exception:
+                    os_name = 'unknown'
+                array['os'] = os_name
+                items = []
+                for _n, st in monitorServer.items():
+                    key = str(_n)
+                    try:
+                        ms = int(st.get('latency') or 0)
+                    except Exception:
+                        ms = 0
+                    items.append((key, max(0, ms)))
+                # 稳定顺序：按 key 排序
+                items.sort(key=lambda x: x[0])
+                array['custom'] = ';'.join(f"{k}={v}" for k, v in items)
                 s.send(byte_str("update " + json.dumps(array) + "\n"))
         except KeyboardInterrupt:
             raise

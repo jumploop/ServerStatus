@@ -40,16 +40,39 @@
 	],
 	"monitors": [
 		{
-			"name": "baidu",
-			"host": "https://www.baidu.com",
-			"interval": 1200,
+			"name": "抖音",
+			"host": "https://www.douyin.com",
+			"interval": 600,
 			"type": "https"
 		},
 		{
-			"name": "1111",
-			"host": "1.1.1.1:80",
-			"interval": 1200,
-			"type": "tcp"
+			"name": "百度",
+			"host": "https://www.baidu.com",
+			"interval": 600,
+			"type": "https"
+		}
+	],
+	"sslcerts": [
+		{
+			"name": "my.cloudcpp.com",
+			"domain": "https://my.cloudcpp.com",
+			"port": 443,
+			"interval": 7200,
+			"callback": "https://yourSMSurl" 
+		},
+		{
+			"name": "tz.cloudcpp.com",
+			"domain": "https://tz.cloudcpp.com",
+			"port": 443,
+			"interval": 7200,
+			"callback": "https://yourSMSurl" 
+		},
+		{
+			"name": "3.0.2.1",
+			"domain": "https://3.0.2.1",
+			"port": 443,
+			"interval": 7200,
+			"callback": "https://yourSMSurl"
 		}
 	],
 	"watchdog": [

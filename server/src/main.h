@@ -78,6 +78,8 @@ class CMain
 			int64_t m_IOWrite;
 			double m_CPU;
 			char m_aCustom[1024];
+			// OS name reported by client (e.g. linux/windows/darwin/freebsd)
+			char m_aOS[64];
 			// Options
 			bool m_Pong;
 		} m_Stats;
@@ -96,12 +98,28 @@ class CMain
         int  m_aInterval;
         char m_aType[128];
     } m_aCMonitors[NET_MAX_CLIENTS];
+public:
+	struct CSSLCerts{
+		char m_aName[128];
+		char m_aDomain[256];
+		int  m_aPort;
+		int  m_aInterval; // seconds
+		char m_aCallback[1024];
+		int64_t m_aExpireTS; // epoch seconds cache
+		int64_t m_aLastCheck; // last check time
+		int64_t m_aLastAlarm7;
+		int64_t m_aLastAlarm3;
+		int64_t m_aLastAlarm1;
+		int m_aHostnameMismatch; // 1: 域名与证书不匹配
+		int64_t m_aLastAlarmMismatch; // 上次不匹配告警时间
+	} m_aCSSLCerts[NET_MAX_CLIENTS];
 
 	struct CJSONUpdateThreadData
 	{
 		CClient *pClients;
 		CConfig *pConfig;
         CWatchDog *pWatchDogs;
+		CMain *pMain;
 		volatile short m_ReloadRequired;
 	} m_JSONUpdateThreadData, m_OfflineAlarmThreadData;
 
@@ -118,6 +136,7 @@ public:
 
     CWatchDog *Watchdog(int ruleID) { return &m_aCWatchDogs[ruleID]; }
     CMonitors *Monitors(int ruleID) { return &m_aCMonitors[ruleID]; }
+	CSSLCerts *SSLCert(int ruleID) { return &m_aCSSLCerts[ruleID]; }
 
     void WatchdogMessage(int ClientNetID,
                          double load_1, double load_5, double load_15, double ping_10010, double ping_189, double ping_10086,
