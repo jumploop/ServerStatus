@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Test Go server
+        working-directory: server
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test -race ./...
+          CGO_ENABLED=0 go build -trimpath -o /tmp/serverstatus .
+
+      - name: Check clients, WebUI and shell scripts
+        run: |
+          python3 -m py_compile clients/client-linux.py clients/client-psutil.py
+          python3 -m unittest clients/test_client_args.py
+          sh -n clients/entrypoint.sh
+          bash -n status.sh
+          node --check web/js/app.js
+
+      - name: Validate compose files
+        run: |
+          docker compose -f docker-compose-server.yml config
+          docker compose -f docker-compose-client.yml config
+
+      - name: Build Docker images
+        run: |
+          docker build -f Dockerfile.server -t serverstatus-server:test .
+          docker build -f Dockerfile.client -t serverstatus-client:test .

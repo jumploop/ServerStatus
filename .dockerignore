@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+*.sublime-workspace
+server/serverstatus
+web/json/stats.json
+web/json/stats.json~
+*.bak-*
+__pycache__
+*.pyc

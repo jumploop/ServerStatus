@@ -1,329 +1,340 @@
-# ServerStatus 中文版：
+# ServerStatus 中文版
 
-- ServerStatus 中文版是一个酷炫高逼格的云探针、云监控、服务器云监控、多服务器探针~。
-- 在线演示：https://tz.cloudcpp.com
+ServerStatus 是一个轻量的服务器探针和云监控面板，支持多节点在线状态、资源占用、三网延迟、服务监测、SSL 证书检查、Watchdog 告警、HTTP API 和 Web 配置管理。
 
-[![Python Support](https://img.shields.io/badge/python-3.6%2B%20-blue.svg)](https://github.com/cppla/ServerStatus)
-[![C++ Compiler](http://img.shields.io/badge/C++-GNU-blue.svg?style=flat&logo=cplusplus)](https://github.com/cppla/ServerStatus)
-[![License](https://img.shields.io/badge/license-MIT-4EB1BA.svg?style=flat-square)](https://github.com/cppla/ServerStatus)
-[![Version](https://img.shields.io/badge/Version-Build%201.1.7-red)](https://github.com/cppla/ServerStatus)
+在线演示：https://tz.cloudcpp.com
 
-![Latest Host Version](https://dl.cpp.la/Archive/serverstatus_1_1_7.png)
+[![Go](https://img.shields.io/badge/Go-1.25%2B-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![CI](https://github.com/cppla/ServerStatus/actions/workflows/ci.yml/badge.svg)](https://github.com/cppla/ServerStatus/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-4EB1BA.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-2.0.0-red)](https://github.com/cppla/ServerStatus)
 
-`Watchdog触发式告警，interval只是为了防止频繁收到报警，并不是探测间隔。值得注意的是Exprtk使用窄字符类型，中文等Unicode字符无法解析计算。 AI已经能够取代大部分程序员`
+![ServerStatus WebUI](https://dl.cpp.la/Archive/serverstatus_2_0_0.webp)
 
-- clients 客户端文件
-- server 服务端文件
-- web 网站文件
 
-- server/config.json 探针配置文件
-- web/json 探针月流量
-
-# Linux 服务器部署
-
-支持操作系统：Debian/Ubuntu,Centos/Redhat,archlinux
-
-PS：部署完如果有防火墙，请放行对应端口，否则无法访问，或者关闭防火墙（不建议）
-
-#### 一键脚本部署:
+## 一、服务端
 
 ```bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/status.sh && chmod +x status.sh && bash status.sh
+# Docker Compose，本地构建加：--build
+ADMIN_TOKEN='your-strong-token' docker compose -f docker-compose-server.yml up -d    
 ```
-
-部署成功后，web 服务地址：http://ip:8888
-
-# 容器部署：
-
-PS：部署完如果有防火墙，请放行对应端口，否则无法访问，或者关闭防火墙（不建议）
-
-【服务端】：
 
 ```bash
+# Docker Run
+wget -qO ~/serverstatus-config.json \
+  --header='Accept: application/vnd.github.raw' \
+  'https://api.github.com/repos/cppla/ServerStatus/contents/server/config.json?ref=master'
+mkdir -p ~/serverstatus-data
 
-`Docker`:
-
-wget --no-check-certificate -qO ~/serverstatus-config.json https://raw.githubusercontent.com/cppla/ServerStatus/master/server/config.json && mkdir ~/serverstatus-monthtraffic
-docker run -d --restart=always --name=serverstatus -v ~/serverstatus-config.json:/ServerStatus/server/config.json -v ~/serverstatus-monthtraffic:/usr/share/nginx/html/json -p 80:80 -p 35601:35601 cppla/serverstatus:latest
-
-`Docker-compose(推荐)`: docker-compose up -d
+docker run -d --restart=always --name=serverstatus-server \
+  -e ADMIN_TOKEN='your-strong-token' \
+  -v ~/serverstatus-config.json:/app/config/config.json \
+  -v ~/serverstatus-data:/app/data \
+  -p 8080:80 -p 35601:35601 \
+  cppla/serverstatus:server
 ```
 
-【客户端】：
+启动后访问：
+
+- WebUI：http://127.0.0.1:8080/
+- 健康检查：http://127.0.0.1:8080/api/health
+- API 描述：http://127.0.0.1:8080/api/schema
+- OpenAPI 3.1：http://127.0.0.1:8080/api/openapi.json
+- 客户端上报端口：`35601/tcp`
+
+`ADMIN_TOKEN` 不设置时，监控页面仍可读取，管理 API 返回 `503`，WebUI 的“配置”页不能修改数据。
+
+## 二、客户端
 
 ```bash
-wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/cppla/ServerStatus/master/clients/client-linux.py' && nohup python3 client-linux.py SERVER={$SERVER} USER={$USER} PASSWORD={$PASSWORD} >/dev/null 2>&1 &
-
-eg:
-wget --no-check-certificate -qO client-linux.py 'https://raw.githubusercontent.com/cppla/ServerStatus/master/clients/client-linux.py' && nohup python3 client-linux.py SERVER=45.79.67.132 USER=s04  >/dev/null 2>&1 &
+# Docker Compose，本地构建加：--build
+SERVER=127.0.0.1 USER=s01 PASSWORD=USER_DEFAULT_PASSWORD \
+docker compose -f docker-compose-client.yml up -d --force-recreate
 ```
-
-**以下一键部署脚本，由本人维护，放心使用**
-
-> PS: 部署完服务端，会执行节点管理脚本，添加和删除要监控的节点，请确保服务器可以访问。
-
-服务端一键脚本容器部署：
 
 ```bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/serverstatus_deploy.sh && chmod +x serverstatus_deploy.sh && bash serverstatus_deploy.sh
+# Docker Run
+docker run -d --restart=always --name=serverstatus-client \
+  --network=host --pid=host \
+  -e SERVER=127.0.0.1 \
+  -e USER=s01 \
+  -e PASSWORD=USER_DEFAULT_PASSWORD \
+  cppla/serverstatus:client
 ```
-
-Server 酱上下线提醒服务端一键脚本容器部署：
-
-需要传入 Server 酱的 SendKey
 
 ```bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/serverstatus_serverchan_deploy.sh && chmod +x serverstatus_serverchan_deploy.sh && bash serverstatus_serverchan_deploy.sh SendKey
+# Shell Run
+wget -qO client-linux.py --header='Accept: application/vnd.github.raw' \
+  'https://api.github.com/repos/cppla/ServerStatus/contents/clients/client-linux.py?ref=master'
+nohup python3 client-linux.py SERVER=127.0.0.1 USER=s01 PASSWORD=USER_DEFAULT_PASSWORD >/dev/null 2>&1 &
 ```
 
-Telegram 上下线提醒服务端一键脚本容器部署：
+`USER` 是常见的宿主机环境变量名。如果没有显式传递或传递方式错误，Compose 可能会把系统中的 `$USER` 解析成本机用户名，而不是默认的 `s01`。推荐优先级：
 
-需要传入 Telegram 的 YOUR_TG_CHAT_ID，YOUR_TG_BOT_TOKEN
+1. 运行命令显式传递 `USER=s01`
+2. 修改 `docker-compose-client.yml` 中的 `USER` 默认值
+3. Docker 或系统环境中的 `USER`
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `SERVER` | `127.0.0.1` | Go 服务端地址 |
+| `USER` | `s01` | 客户端用户名，必须匹配服务端配置 |
+| `PORT` | `35601` | Agent TCP 上报端口 |
+| `PASSWORD` | `USER_DEFAULT_PASSWORD` | 客户端密码，必须匹配服务端配置 |
+| `INTERVAL` | `1` | 状态上报间隔，单位秒 |
+| `PROBEPORT` | `80` | 三网 TCP 探测端口 |
+| `PROBE_PROTOCOL_PREFER` | `ipv4` | 探测协议偏好，可选 `ipv4`、`ipv6` |
+| `PING_PACKET_HISTORY_LEN` | `100` | 丢包历史窗口 |
+| `CU` | `cu.tz.cloudcpp.com` | 联通探测地址 |
+| `CT` | `ct.tz.cloudcpp.com` | 电信探测地址 |
+| `CM` | `cm.tz.cloudcpp.com` | 移动探测地址 |
+| `CLIENT` | `psutil` | 客户端实现，可选 `psutil`、`linux` |
+
+## 服务端参数
+
+Docker 镜像中的默认路径为：
+
+| 环境变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `CONFIG_PATH` | `/app/config/config.json` | 主配置文件 |
+| `STATS_PATH` | `/app/data/stats.json` | 月流量与状态持久化文件；每 60 秒写入，关键操作与正常退出时立即写入 |
+| `WEB_DIR` | `/app/web` | WebUI 静态文件目录 |
+| `HTTP_ADDR` | `:80` | WebUI 与 HTTP API 监听地址 |
+| `AGENT_ADDR` | `:35601` | 客户端 TCP 上报监听地址 |
+| `ADMIN_TOKEN` | 空 | 管理 API Bearer Token；为空时禁用管理接口 |
+| `ADMIN_CORS_ORIGIN` | 空 | 可选的 API CORS Origin |
+| `INSECURE_CALLBACK_TLS` | `false` | 是否允许 Watchdog/证书回调使用不可信 TLS 证书 |
+| `VERBOSE` | `false` | 输出 Gin HTTP 请求日志 |
+| `TZ` | `Asia/Shanghai` | 容器时区 |
+
+对应命令行参数：
+
+```text
+--config, -c     config.json 路径
+--stats          stats.json 路径
+--web-dir, -d    WebUI 目录
+--http           HTTP 监听地址
+--agent          Agent TCP 监听地址
+--verbose, -v    详细请求日志
+--version        输出构建版本
+```
+
+旧参数 `--bind/-b` 和 `--port/-p` 仍可用于设置 Agent TCP 监听地址。
+
+## HTTP 管理 API
+
+管理接口使用 Bearer Token：
+
+```http
+Authorization: Bearer <ADMIN_TOKEN>
+```
+
+无需认证：
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| `GET` | `/api/health` | 进程、Agent TCP、版本和配置路径状态 |
+| `GET` | `/api/schema` | 机器可读的端点与配置集合描述 |
+| `GET` | `/api/openapi.json` | 可供 AI Agent 直接导入的 OpenAPI 3.1 文档 |
+| `GET` | `/json/stats.json` | WebUI 使用的实时状态快照 |
+
+需要认证：
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| `GET/PUT` | `/api/config` | 读取或整体替换配置 |
+| `GET/POST` | `/api/servers` | 查询或新增节点 |
+| `PUT/DELETE` | `/api/servers/{username}` | 修改或删除节点 |
+| `POST` | `/api/servers/{username}/reset-traffic` | 将当前流量设为本月基线 |
+| `GET/POST` | `/api/monitors` | 查询或新增服务监测 |
+| `PUT/DELETE` | `/api/monitors/{index-or-name}` | 修改或删除服务监测 |
+| `GET/POST` | `/api/sslcerts` | 查询或新增证书监测 |
+| `PUT/DELETE` | `/api/sslcerts/{index-or-name}` | 修改或删除证书监测 |
+| `GET/POST` | `/api/watchdog` | 查询或新增 Watchdog |
+| `PUT/DELETE` | `/api/watchdog/{index-or-name}` | 修改或删除 Watchdog |
+| `POST` | `/api/reload` | 从磁盘重新读取配置 |
+| `POST` | `/api/restart` | 在进程内重启采集运行时 |
+
+配置修改采用“校验 → 备份 → 持久化 → 原子切换”的顺序。成功后现有 Agent 连接会被关闭，Python 客户端约 3 秒后自动重连并获取新的 `monitors`。`/api/restart` 不退出 Go 进程，因此 Docker 和手动运行方式具有一致语义。
+
+常用调用：
 
 ```bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/serverstatus_telegram_deploy.sh && chmod +x serverstatus_telegram_deploy.sh && bash serverstatus_telegram_deploy.sh YOUR_TG_CHAT_ID YOUR_TG_BOT_TOKEN
+TOKEN='请替换为 ADMIN_TOKEN'
+
+curl http://127.0.0.1:8080/api/health
+
+curl -H "Authorization: Bearer ${TOKEN}" \
+  http://127.0.0.1:8080/api/config
+
+curl -X POST http://127.0.0.1:8080/api/servers \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"s05","name":"node5","type":"kvm","host":"host5","location":"SG","password":"change-me","monthstart":1}'
+
+curl -X DELETE \
+  -H "Authorization: Bearer ${TOKEN}" \
+  http://127.0.0.1:8080/api/servers/s05
 ```
 
-pushplus 上下线提醒服务端一键脚本容器部署：
+请求体最大为 `1 MiB`。AI Agent 可直接导入 `/api/openapi.json`；轻量客户端也可以先读取 `/api/schema`，再根据返回的集合字段调用 CRUD 接口。
 
-需要传入 pushplus 的 YOUR_PP_BOT_TOKEN
+## 配置文件
 
-```bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/serverstatus_pushplus_deploy.sh && chmod +x serverstatus_pushplus_deploy.sh && bash serverstatus_pushplus_deploy.sh YOUR_PP_BOT_TOKEN
-```
-
-部署成功后，web 服务地址：http://ip:8080
-
-# 节点管理，生成一键客户端部署命令
-
-通过 config_manager.py 脚本，可以很方便的进行节点的增删改查操作。特别在添加新节点时，会有提示如何在新节点安装对应的 agent 服务。节点管理时，把 config_manager.py 放到和 config.json 同一目录，运行 `python3 config_manager.py` 即可,默认配置文件 config.json 和脚本在同一目录，ServerStatus 默认服务重启命令为`docker-compose restart`。支持传入重启 ServerStatus 服务命令和 config.json 配置文件路径，改成你对应的服务启动方式和配置文件路径，例如用 systemd,则传入`systemctl restart ServerStatus`。
-
-脚本的参数，主要有 2 个：
-
-```bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/jumploop/ServerStatus/master/plugin/config_manager.py
-
-python3 config_manager.py -a xxx -c xxx
-
--a, --action ServerStatus服务重启命令,默认为docker-compose restart
--c, --config config.json配置文件路径，默认为脚本当前路径
-
-eg:
-python3 config_manager.py -a 'systemctl restart ServerStatus' -c config.json
-```
-
-效果如下：
-![添加节点](image/add_node.png)
-
-# 主题：
-
-- layui：https://github.com/zeyudada/StatusServerLayui ，预览：https://sslt.8zyw.cn  
-  <img src=https://dl.cpp.la/Archive/serverstatus_layui.png width=200 height=100 />
-
-- light：https://github.com/orilights/ServerStatus-Theme-Light ，预览：https://tz.cloudcpp.com/index3.html  
-  <img src=https://dl.cpp.la/Archive/serverstatus_light.png width=200 height=100 />
-
-# 手动安装教程：
-
-**【服务端配置】**
-
-#### 一、生成服务端程序
-
-```bash
-`Debian/Ubuntu`: apt-get -y install gcc g++ make libcurl4-openssl-dev
-`Centos/Redhat`: yum -y install gcc gcc-c++ make libcurl-devel
-
-cd ServerStatus/server && make
-./sergate
-```
-
-如果没错误提示，OK，ctrl+c 关闭；如果有错误提示，检查 35601 端口是否被占用
-
-#### 二、修改配置文件
-
-```diff
-! watchdog rule 可以为任何已知字段的表达式。注意Exprtk库默认使用窄字符类型，中文等Unicode字符无法解析计算，等待修复
-! watchdog interval 最小通知间隔
-! watchdog callback 可自定义为Post方法的URL，告警内容将拼接其后并发起回调
-
-! Telegram: https://api.telegram.org/bot你自己的密钥/sendMessage?parse_mode=HTML&disable_web_page_preview=true&chat_id=你自己的标识&text=
-! Server酱: https://sctapi.ftqq.com/你自己的密钥.send?title=ServerStatus&desp=
-! PushDeer: https://api2.pushdeer.com/message/push?pushkey=你自己的密钥&text=
-! HttpBasicAuth: https://用户名:密码@你自己的域名/api/push?message=
-! pushplus: https://www.pushplus.plus/send?token=你的token&title=ServerStatus&content=XXX&template=html
-```
-
-关于 Server 酱的具体使用可以查看[Server 酱使用方法](https://zhuanlan.zhihu.com/p/713331404)
-
-```
+```json
 {
-        "servers":
-	[
-		{
-			"username": "s01",
-			"name": "vps-1",
-			"type": "kvm",
-			"host": "chengdu",
-			"location": "🇨🇳",
-			"password": "USER_DEFAULT_PASSWORD",
-			"monthstart": 1
-		}
-	],
-	"monitors": [
-		{
-			"name": "抖音",
-			"host": "https://www.douyin.com",
-			"interval": 600,
-			"type": "https"
-		},
-		{
-			"name": "百度",
-			"host": "https://www.baidu.com",
-			"interval": 600,
-			"type": "https"
-		}
-	],
-	"sslcerts": [
-		{
-			"name": "demo域名",
-			"domain": "https://demo.example.com",
-			"port": 443,
-			"interval": 600,
-			"callback": "https://yourSMSurl"
-		}
-	],
-	"watchdog":
-	[
-	        {
-			"name": "服务器负载高监控，排除内存大于32G物理机，同时排除node1机器",
-			"rule": "cpu>90&load_1>4&memory_total<33554432&name!='node1'",
-			"interval": 600,
-			"callback": "https://yourSMSurl"
-		},
-		{
-                        "name": "服务器内存使用率过高监控，排除小于1G的机器",
-                        "rule": "(memory_used/memory_total)*100>90&memory_total>1048576",
-                        "interval": 600,
-                        "callback": "https://yourSMSurl"
-                },
-                {
-                        "name": "服务器宕机告警",
-                        "rule": "online4=0&online6=0",
-                        "interval": 600,
-                        "callback": "https://yourSMSurl"
-                },
-		{
-                        "name": "DDOS和CC攻击监控，限制甲骨文机器",
-                        "rule": "tcp_count>600&type='Oracle'",
-                        "interval": 300,
-                        "callback": "https://yourSMSurl"
-                },
-		{
-			"name": "服务器月出口流量999GB告警",
-			"rule": "(network_out-last_network_out)/1024/1024/1024>999",
-			"interval": 3600,
-			"callback": "https://yourSMSurl"
-		},
-		{
-			"name": "阿里云服务器流量18GB告警,限制username为乌兰察布",
-			"rule": "(network_out-last_network_out)/1024/1024/1024>18&(username='wlcb1'|username='wlcb2'|username='wlcb3'|username='wlcb4')",
-			"interval": 3600,
-			"callback": "https://yourSMSurl"
-		},
-		{
-			"name": "重要线路丢包率过高检查",
-			"rule": "(ping_10010>10|ping_189>10|ping_10086>10)&(host='sgp'|host='qqhk'|host='hk-21-x'|host='hk-31-x')",
-			"interval": 600,
-			"callback": "https://yourSMSurl"
-		},
-		{
-			"name": "你可以组合任何已知字段的表达式",
-			"rule": "(hdd_used/hdd_total)*100>95",
-			"interval": 1800,
-			"callback": "https://yourSMSurl"
-		}
-	]
+  "servers": [
+    {
+      "username": "s01",
+      "name": "node1",
+      "type": "kvm",
+      "host": "host1",
+      "location": "CN",
+      "password": "USER_DEFAULT_PASSWORD",
+      "monthstart": 1,
+      "disabled": false
+    }
+  ],
+  "monitors": [
+    {
+      "name": "example",
+      "host": "https://example.com",
+      "interval": 600,
+      "type": "https"
+    }
+  ],
+  "sslcerts": [
+    {
+      "name": "example",
+      "domain": "https://example.com",
+      "port": 443,
+      "interval": 7200,
+      "callback": "https://example.net/push?message="
+    }
+  ],
+  "watchdog": [
+    {
+      "name": "offline warning",
+      "rule": "online4=0&online6=0",
+      "interval": 600,
+      "callback": "https://example.net/push?message="
+    }
+  ]
 }
 ```
 
-#### 三、拷贝 ServerStatus/web 到你的网站目录
+约束：
 
-例如：
+- `servers.username` 必须唯一。
+- `monthstart` 自动限制在 `1-28`。
+- `port` 自动限制在 `1-65535`。
+- `interval` 最小为 1 秒；Watchdog 中表示通知冷却时间，不是客户端采集间隔。
+- 配置写入前会创建 `config.json.bak-*`，最多保留 10 份。
+- Docker 单文件 bind mount 无法被 `rename` 覆盖时，服务端会在完成备份后安全地写回原 inode。
 
-```bash
-sudo cp -r ServerStatus/web/* /home/wwwroot/default
+使用 Docker 单文件挂载时，配置备份位于容器 `/app/config` 的可写层；如需长期保留历史版本，建议同时在宿主机备份 `server/config.json`。
+
+### Watchdog 表达式
+
+`rule` 由 Go `expr` 引擎执行，并兼容旧版 Exprtk 的常用写法。Go 服务会把字符串外的单个操作符自动转换：
+
+```text
+&  -> &&
+|  -> ||
+=  -> ==
 ```
 
-#### 四、运行服务端：
+例如以下两种写法等价：
 
-web-dir 参数为上一步设置的网站根目录，务必修改成自己网站的路径
-
-```bash
-./sergate --config=config.json --web-dir=/home/wwwroot/default
+```text
+cpu>90&load_1>5&username!='s01'
+cpu>90 && load_1>5 && username!='s01'
 ```
 
-**【客户端配置】**
+字符串值支持中文、Emoji 和其他 Unicode 字符，例如：
 
-客户端有两个版本，client-linux 为普通 linux，client-psutil 为跨平台版，普通版不成功，换成跨平台版即可。
-
-#### client-linux.py Linux 版
-
-```bash
-# 1、修改 client-linux.py 中的 SERVER、username、password
-python3 client-linux.py
-# 2、以传参的方式启动
-python3 client-linux.py SERVER=127.0.0.1 USER=s01
+```text
+username='节点一号'&name='上海节点'&location='中国 🇨🇳'&type='云主机'
 ```
 
-#### client-psutil.py 跨平台版
+字段名必须使用系统定义的英文名称。可用字段包括：`username`、`name`、`type`、`host`、`location`、`load_1`、`load_5`、`load_15`、`cpu`、`memory_total`、`memory_used`、`swap_total`、`swap_used`、`hdd_total`、`hdd_used`、`network_rx`、`network_tx`、`network_in`、`network_out`、`last_network_in`、`last_network_out`、`ping_10010`、`ping_189`、`ping_10086`、`time_10010`、`time_189`、`time_10086`、`tcp_count`、`udp_count`、`process_count`、`thread_count`、`io_read`、`io_write`、`online4`、`online6`。
+
+客户端断开 25 秒后仍未重连，服务端才计算离线规则，避免短暂网络波动触发告警。每个节点、每条规则分别记录冷却时间。
+
+### SSL 证书
+
+证书检查使用 Go `crypto/tls`，不再调用外部 `openssl`。服务端记录到期时间、剩余天数和域名匹配状态，并保留原来的 7/3/1 天通知档位与冷却时间。
+
+回调默认校验 HTTPS 证书。仅在必须兼容自签名回调服务时设置：
 
 ```bash
-# 安装依赖
-# Debian/Ubuntu
-apt -y install python3-psutil
-# Centos/Redhat
-yum -y install python3-pip gcc python3-devel && pip3 install psutil
-# Windows: 从 https://pypi.org/project/psutil/ 安装
+INSECURE_CALLBACK_TLS=true
 ```
 
-#### 后台运行与开机启动
+## 源码编译和运行
+
+需要 Go `1.25` 或更高版本：
 
 ```bash
-# 后台运行
-nohup python3 client-linux.py &
-
-# 开机启动 (crontab -e)
-@reboot /usr/bin/python3 /path/to/client-linux.py
+cd server
+go mod download
+go test ./...
+go build -trimpath -ldflags='-s -w' -o serverstatus .
 ```
 
-## 集成新功能
-
-https://github.com/lidalao/ServerStatus
-
-#### 介绍
-
-项目基于 cppla 版本 ServerStatus， 增加如下功能：
-
-更方便的节点管理, 支持增删改查
-上下线通知（telegram）
-Agent 机器安装脚本改为 systemd， 支持开机自启
-由于未改动 cppla 版的任何代码，所以，我愿意把这个项目称为 ServerStatus 的小插件, 理论上它可以为任何版本的 ServerStatus 服务
-
-#### 安装
-
-在服务端复制以下命令，一键到底。请记得替换成你自己的 YOUR_TG_CHAT_ID，YOUR_TG_BOT_TOKEN
-
-其中，Bot token 可以通过@BotFather 创建机器人获取， Chat id 可以通过@getuserID 获取。
+从 `server/` 目录启动：
 
 ```bash
-wget --no-check-certificate -O sss.sh https://raw.githubusercontent.com/jumploop/ServerStatus/master/shell/sss.sh && chmod +x ./sss.sh && ./sss.sh YOUR_TG_CHAT_ID YOUR_TG_BOT_TOKEN
+ADMIN_TOKEN='请替换为高强度随机字符串' \
+./serverstatus \
+  --config=config.json \
+  --stats=../web/json/stats.json \
+  --web-dir=../web \
+  --http=:8080 \
+  --agent=:35601
 ```
 
-安装成功后，web 服务地址：http://ip:8081
+访问 http://127.0.0.1:8080/。发送 `SIGHUP` 可以重新读取配置：
 
-# Make Better
+```bash
+kill -HUP "$(pgrep -x serverstatus)"
+```
+
+Systemd 示例位于 `service/status-server.service`。一键脚本 `status.sh` 也已切换到 Go 构建，但 Docker 仍是推荐部署方式。
+
+## 构建和测试
+
+```bash
+# Go 单元、协议、API、TLS 和回调测试
+cd server
+go test ./...
+go test -race ./...
+go vet ./...
+
+# Docker 镜像
+cd ..
+docker build -f Dockerfile.server -t cppla/serverstatus:server .
+docker build -f Dockerfile.client -t cppla/serverstatus:client .
+
+# Compose 配置
+docker compose -f docker-compose-server.yml config
+docker compose -f docker-compose-client.yml config
+```
+
+CI 还会检查 Go 格式、Python 客户端、Shell 脚本、WebUI JavaScript、服务端/客户端 Compose 文件和两个 Docker 镜像。
+
+## 从旧服务端迁移
+
+1. 备份原来的 `config.json` 和 `web/json/stats.json`。
+2. 原配置结构和客户端账号无需转换。
+3. Docker 挂载目标改为 `/app/config/config.json` 和 `/app/data`。
+4. 删除旧的 nginx、`manage_api.py`、`sergate` 启动或监督配置。
+5. 启动 Go 服务端后检查 `/api/health`，再观察客户端自动重连。
+
+`stats.json` 会按节点的 `name/type/host/location` 恢复月流量基线。修改这些身份字段会被视为新节点。
+
+
+## 致谢
 
 - BotoX：https://github.com/BotoX/ServerStatus
-- mojeda: https://github.com/mojeda
-- mojeda's ServerStatus: https://github.com/mojeda/ServerStatus
-- BlueVM's project: http://www.lowendtalk.com/discussion/comment/169690#Comment_169690
+- mojeda：https://github.com/mojeda/ServerStatus
