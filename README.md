@@ -5,9 +5,9 @@ ServerStatus 是一个轻量的服务器探针和云监控面板，支持多节�
 在线演示：https://tz.cloudcpp.com
 
 [![Go](https://img.shields.io/badge/Go-1.25%2B-00ADD8?logo=go&logoColor=white)](https://go.dev/)
-[![CI](https://github.com/cppla/ServerStatus/actions/workflows/ci.yml/badge.svg)](https://github.com/cppla/ServerStatus/actions/workflows/ci.yml)
+[![CI](https://github.com/jumploop/ServerStatus/actions/workflows/ci.yml/badge.svg)](https://github.com/jumploop/ServerStatus/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-4EB1BA.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-2.0.0-red)](https://github.com/cppla/ServerStatus)
+[![Version](https://img.shields.io/badge/Version-2.0.0-red)](https://github.com/jumploop/ServerStatus)
 
 ![ServerStatus WebUI](https://dl.cpp.la/Archive/serverstatus_2_0_0.webp)
 
@@ -23,7 +23,7 @@ ADMIN_TOKEN='your-strong-token' docker compose -f docker-compose-server.yml up -
 # Docker Run
 wget -qO ~/serverstatus-config.json \
   --header='Accept: application/vnd.github.raw' \
-  'https://api.github.com/repos/cppla/ServerStatus/contents/server/config.json?ref=master'
+  'https://api.github.com/repos/jumploop/ServerStatus/contents/server/config.json?ref=master'
 mkdir -p ~/serverstatus-data
 
 docker run -d --restart=always --name=serverstatus-server \
@@ -31,7 +31,7 @@ docker run -d --restart=always --name=serverstatus-server \
   -v ~/serverstatus-config.json:/app/config/config.json \
   -v ~/serverstatus-data:/app/data \
   -p 8080:80 -p 35601:35601 \
-  cppla/serverstatus:server
+  jumploop/serverstatus:server
 ```
 
 启动后访问：
@@ -59,15 +59,17 @@ docker run -d --restart=always --name=serverstatus-client \
   -e SERVER=127.0.0.1 \
   -e USER=s01 \
   -e PASSWORD=USER_DEFAULT_PASSWORD \
-  cppla/serverstatus:client
+  jumploop/serverstatus:client
 ```
 
 ```bash
-# Shell Run
-wget -qO client-linux.py --header='Accept: application/vnd.github.raw' \
-  'https://api.github.com/repos/cppla/ServerStatus/contents/clients/client-linux.py?ref=master'
-nohup python3 client-linux.py SERVER=127.0.0.1 USER=s01 PASSWORD=USER_DEFAULT_PASSWORD >/dev/null 2>&1 &
+# Shell（下载安装脚本，自动配置为 systemd 服务）
+wget -qO install.sh --header='Accept: application/vnd.github.raw' \
+  'https://api.github.com/repos/jumploop/ServerStatus/contents/clients/install.sh?ref=master'
+bash install.sh SERVER=127.0.0.1 USER=s01 PASSWORD=USER_DEFAULT_PASSWORD
 ```
+
+安装脚本会下载 `service/status-client.service` 与 `clients/client-linux.py`，写入客户端配置并注册为 systemd 服务 `status-client`（需 root 或 sudo）。
 
 `USER` 是常见的宿主机环境变量名。如果没有显式传递或传递方式错误，Compose 可能会把系统中的 `$USER` 解析成本机用户名，而不是默认的 `s01`。推荐优先级：
 
@@ -102,6 +104,8 @@ Docker 镜像中的默认路径为：
 | `HTTP_ADDR` | `:80` | WebUI 与 HTTP API 监听地址 |
 | `AGENT_ADDR` | `:35601` | 客户端 TCP 上报监听地址 |
 | `ADMIN_TOKEN` | 空 | 管理 API Bearer Token；为空时禁用管理接口 |
+| `ADMIN_USERNAME` | `admin` | WebUI 配置页登录用户名 |
+| `ADMIN_PASSWORD` | 空 | WebUI 配置页登录密码；为空时使用 `ADMIN_TOKEN` |
 | `ADMIN_CORS_ORIGIN` | 空 | 可选的 API CORS Origin |
 | `INSECURE_CALLBACK_TLS` | `false` | 是否允许 Watchdog/证书回调使用不可信 TLS 证书 |
 | `VERBOSE` | `false` | 输出 Gin HTTP 请求日志 |
@@ -129,6 +133,8 @@ Docker 镜像中的默认路径为：
 Authorization: Bearer <ADMIN_TOKEN>
 ```
 
+WebUI 的“配置”页使用用户名/密码登录（`ADMIN_USERNAME` / `ADMIN_PASSWORD`，密码为空时用 `ADMIN_TOKEN`），登录成功后服务端下发 `HttpOnly` 会话 Cookie，无需在浏览器里保存 Token。命令行和 Agent 仍可直接使用 Bearer Token。
+
 无需认证：
 
 | 方法 | 路径 | 用途 |
@@ -137,6 +143,8 @@ Authorization: Bearer <ADMIN_TOKEN>
 | `GET` | `/api/schema` | 机器可读的端点与配置集合描述 |
 | `GET` | `/api/openapi.json` | 可供 AI Agent 直接导入的 OpenAPI 3.1 文档 |
 | `GET` | `/json/stats.json` | WebUI 使用的实时状态快照 |
+| `POST` | `/api/login` | 用户名/密码登录，返回会话 Cookie |
+| `POST` | `/api/logout` | 清除当前会话 |
 
 需要认证：
 
@@ -323,12 +331,12 @@ pnpm exec playwright install chromium
 pnpm test:webui
 
 # Docker 镜像
-docker build -f Dockerfile.server -t cppla/serverstatus:server .
-docker build -f Dockerfile.client -t cppla/serverstatus:client .
+docker build -f Dockerfile.server -t jumploop/serverstatus:server .
+docker build -f Dockerfile.client -t jumploop/serverstatus:client .
 
 # 服务端与客户端真实连接、认证和指标上报
-SERVER_IMAGE=cppla/serverstatus:server \
-CLIENT_IMAGE=cppla/serverstatus:client \
+SERVER_IMAGE=jumploop/serverstatus:server \
+CLIENT_IMAGE=jumploop/serverstatus:client \
 tests/docker-smoke.sh
 
 # Compose 配置
@@ -339,6 +347,17 @@ docker compose -f docker-compose-client.yml config
 Docker 联通测试在 Linux 上覆盖客户端的 `host` 网络和 `pid` 模式；Docker Desktop 未启用 Host Networking 时会明确提示并使用隔离 bridge 完成本地协议测试。
 
 CI 还会运行 Chromium 行为测试、Docker 服务端/客户端联通测试，并验证客户端镜像可同时构建为 AMD64 和 ARM64。
+
+## 镜像自动构建
+
+推送到 `master`/`main`、推送版本标签（如 `v2.1.0`、`2.1.0`）或手动触发 `Docker Images` 工作流时，GitHub Actions 会构建 AMD64/ARM64 双架构镜像并同时推送到 Docker Hub 和 GHCR：
+
+- `jumploop/serverstatus:server`
+- `jumploop/serverstatus:client`
+- `ghcr.io/jumploop/serverstatus:server`
+- `ghcr.io/jumploop/serverstatus:client`
+
+工作流使用仓库 Secret `DOCKERHUB_TOKEN` 登录 Docker Hub，GHCR 使用内置 `GITHUB_TOKEN`。
 
 ## 从旧服务端迁移
 

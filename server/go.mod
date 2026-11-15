@@ -1,4 +1,4 @@
-module github.com/cppla/serverstatus/server
+module github.com/jumploop/serverstatus/server
 
 go 1.25.0
 

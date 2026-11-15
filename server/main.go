@@ -52,6 +52,8 @@ func main() {
 		opts.AgentAddr = net.JoinHostPort(legacyBind, strconv.Itoa(legacyPort))
 	}
 	opts.AdminToken = os.Getenv("ADMIN_TOKEN")
+	opts.AdminUsername = envOr("ADMIN_USERNAME", "admin")
+	opts.AdminPassword = os.Getenv("ADMIN_PASSWORD")
 	opts.CORSOrigin = os.Getenv("ADMIN_CORS_ORIGIN")
 	opts.InsecureCallbackTLS = envBool("INSECURE_CALLBACK_TLS", false)
 

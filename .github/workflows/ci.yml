@@ -38,6 +38,7 @@ jobs:
           python3 -m unittest discover -s clients -p 'test_*.py'
           sh -n clients/entrypoint.sh
           sh -n tests/run-webui-server.sh tests/docker-smoke.sh
+          bash -n clients/install.sh
           bash -n status.sh
           node --check web/js/app.js
           node --check tests/webui/webui.spec.js

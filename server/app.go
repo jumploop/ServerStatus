@@ -22,6 +22,8 @@ type Options struct {
 	HTTPAddr            string
 	AgentAddr           string
 	AdminToken          string
+	AdminUsername       string
+	AdminPassword       string
 	CORSOrigin          string
 	InsecureCallbackTLS bool
 	Verbose             bool
@@ -65,6 +67,9 @@ type App struct {
 	certMu sync.RWMutex
 	certs  map[string]*CertState
 
+	sessionMu sync.Mutex
+	sessions  map[string]time.Time
+
 	persistMu sync.Mutex
 	logger    *log.Logger
 }
@@ -72,6 +77,12 @@ type App struct {
 const statsFlushInterval = time.Minute
 
 func NewApp(opts Options) (*App, error) {
+	if opts.AdminUsername == "" {
+		opts.AdminUsername = "admin"
+	}
+	if opts.AdminPassword == "" {
+		opts.AdminPassword = opts.AdminToken
+	}
 	doc, runtime, err := readConfig(opts.ConfigPath)
 	if err != nil {
 		return nil, err
@@ -84,6 +95,7 @@ func NewApp(opts Options) (*App, error) {
 		cancel:    cancel,
 		nodes:     make(map[string]*NodeState),
 		certs:     make(map[string]*CertState),
+		sessions:  make(map[string]time.Time),
 		logger:    log.New(os.Stdout, "serverstatus ", log.LstdFlags|log.Lmicroseconds),
 	}
 	app.applyValidatedConfig(doc, runtime, false)

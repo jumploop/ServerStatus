@@ -16,6 +16,15 @@ func openAPISpec() map[string]any {
 		"/json/stats.json": map[string]any{
 			"get": publicOperation("stats", "实时状态快照", objectResponse("WebUI 状态数据")),
 		},
+		"/api/login": map[string]any{
+			"post": map[string]any{
+				"operationId": "login", "summary": "登录管理 API", "security": []any{},
+				"requestBody": requestBody("Credentials"), "responses": objectResponse("登录结果"),
+			},
+		},
+		"/api/logout": map[string]any{
+			"post": publicOperation("logout", "退出登录", objectResponse("退出结果")),
+		},
 		"/api/config": map[string]any{
 			"get": protectedOperation("getConfig", "读取完整配置", nil, configResponse("200", "配置文档")),
 			"put": protectedOperation("replaceConfig", "整体校验并替换配置", requestBody("Config"), configResponse("200", "已保存并热重载的配置")),
@@ -119,6 +128,13 @@ func openAPISchemas() map[string]any {
 	}
 	return map[string]any{
 		"Server": server, "Monitor": monitor, "SSLCert": sslcert, "Watchdog": watchdog,
+		"Credentials": map[string]any{
+			"type": "object", "required": []string{"username", "password"},
+			"properties": map[string]any{
+				"username": stringProperty("管理员用户名"),
+				"password": stringProperty("管理员密码"),
+			},
+		},
 		"Config": map[string]any{
 			"type": "object", "required": []string{"servers", "monitors", "sslcerts", "watchdog"},
 			"properties": map[string]any{

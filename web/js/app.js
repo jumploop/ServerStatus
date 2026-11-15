@@ -24,10 +24,12 @@ const S = {
   suppressStatsReloadUntil: 0,
   filters: { query: '', status: 'all', os: 'all', ...initialSortPreference },
   admin: {
-    token: localStorage.getItem('serverstatusAdminToken') || '',
     enabled: false,
     connected: false,
     config: null,
+    agentAddr: '',
+    clientServer: '',
+    clientCmdMethod: 'shell',
     selectedType: 'servers',
     selectedIndex: -1,
     queries: { servers:'', monitors:'', sslcerts:'', watchdog:'' },
@@ -807,12 +809,11 @@ function bindServerInteractions(){
   });
 }
 
-function adminHeaders(){
-  return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.admin.token}` };
-}
 async function api(path, options = {}){
-  const res = await fetch(path, { ...options, headers: { ...(options.headers || {}), ...(options.auth === false ? {} : adminHeaders()) } });
+  const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) };
+  const res = await fetch(path, { ...options, headers });
   const data = await res.json().catch(() => ({}));
+  if(res.status === 401) setAdminLoggedIn(false);
   if(!res.ok || data.ok === false) throw new Error(data.error || res.statusText);
   return data;
 }
@@ -822,8 +823,18 @@ async function ensureAdminChecked(){
   try{
     const health = await api('/api/health', { auth:false });
     S.admin.enabled = !!health.enabled;
-    setAdminStatus(health.enabled ? '管理 API 已启用，输入 token 后可编辑配置。' : '管理 API 未启用：请在容器环境变量设置 ADMIN_TOKEN。', health.enabled ? '' : 'err');
-    if(S.admin.enabled && S.admin.token) await loadConfig();
+    S.admin.agentAddr = health.agent?.address || '';
+    if(!S.admin.enabled){
+      setAdminStatus('管理 API 未启用：请在容器环境变量设置 ADMIN_TOKEN。', 'err');
+      setAdminLoggedIn(false);
+      $('adminLogin').style.display = 'none';
+      return;
+    }
+    try{
+      await loadConfig();
+    }catch(err){
+      setAdminStatus(S.admin.connected ? '加载配置失败：' + err.message : '管理 API 已启用，请登录后编辑配置。', S.admin.connected ? 'err' : '');
+    }
   }catch(err){
     setAdminStatus('无法连接管理 API：' + err.message, 'err');
   }finally{
@@ -838,10 +849,22 @@ function setAdminStatus(text, cls){
 async function loadConfig(){
   const data = await api('/api/config');
   S.admin.config = normalizeAdminConfig(data.config);
-  S.admin.connected = true;
-  setAdminStatus('已连接管理 API，配置可编辑。', 'ok');
+  setAdminLoggedIn(true);
+  setAdminStatus('已登录管理 API，配置可编辑。', 'ok');
   renderConfigList();
   renderConfigEditor();
+}
+function setAdminLoggedIn(connected){
+  S.admin.connected = connected;
+  $('adminLogin').style.display = connected ? 'none' : '';
+  $('adminLogout').style.display = connected ? '' : 'none';
+  $('adminReload').style.display = connected ? '' : 'none';
+  $('adminConfigUI').style.display = connected ? '' : 'none';
+  $('configEditorCard').style.display = connected ? '' : 'none';
+  if(!connected){
+    S.admin.config = null;
+    S.admin.selectedIndex = -1;
+  }
 }
 
 const CONFIG_TYPES = {
@@ -853,12 +876,12 @@ const CONFIG_TYPES = {
     searchFields: ['name','username','location','type','host'],
     hint: '客户端登录使用 username/password，保存后服务会热重载并让客户端自动重连。',
     fields: [
-      { name:'username', label:'用户名', required:true, max:120 },
+      { name:'username', label:'用户名', required:true, max:120, random:8 },
       { name:'name', label:'节点名', required:true, max:120 },
       { name:'type', label:'虚拟化', required:true, max:120, placeholder:'kvm / xen / vmware' },
       { name:'host', label:'主机名', required:true, max:120 },
       { name:'location', label:'位置', required:true, max:120, placeholder:'🇨🇳 / 上海 / hk-01' },
-      { name:'password', label:'密码', required:true, max:120, keepRaw:true },
+      { name:'password', label:'密码', required:true, max:120, keepRaw:true, random:12 },
       { name:'monthstart', label:'月初日', type:'number', min:1, max:28, default:1 },
       { name:'disabled', label:'禁用节点', type:'checkbox' }
     ],
@@ -927,6 +950,55 @@ function normalizeAdminConfig(config){
   });
   return normalized;
 }
+function agentPort(){
+  const addr = S.admin.agentAddr || '';
+  const idx = addr.lastIndexOf(':');
+  const port = idx >= 0 ? addr.slice(idx + 1) : addr;
+  return /^\d+$/.test(port) ? port : '35601';
+}
+function defaultClientServer(){
+  return window.location.hostname || '127.0.0.1';
+}
+function currentClientServer(){
+  if(!S.admin.clientServer) S.admin.clientServer = defaultClientServer();
+  return S.admin.clientServer;
+}
+function shellSafe(v){
+  const s = String(v ?? '');
+  if(!s) return "''";
+  return /^[A-Za-z0-9_@:./-]+$/.test(s) ? s : "'" + s.replace(/'/g, "'\\''") + "'";
+}
+function clientInstallCommand(user, pass){
+  const server = shellSafe(currentClientServer());
+  const port = shellSafe(agentPort());
+  const userS = shellSafe(user);
+  const passS = shellSafe(pass);
+  const method = S.admin.clientCmdMethod || 'shell';
+  if(method === 'compose'){
+    return [
+      `wget -qO docker-compose-client.yml --header='Accept: application/vnd.github.raw' \\`,
+      `  'https://api.github.com/repos/jumploop/ServerStatus/contents/docker-compose-client.yml?ref=master'`,
+      `SERVER=${server} PORT=${port} USER=${userS} PASSWORD=${passS} \\`,
+      `  docker compose -f docker-compose-client.yml up -d --force-recreate`,
+    ].join('\n');
+  }
+  if(method === 'run'){
+    return [
+      `docker run -d --restart=always --name=serverstatus-client \\`,
+      `  --network=host --pid=host \\`,
+      `  -e SERVER=${server} \\`,
+      `  -e PORT=${port} \\`,
+      `  -e USER=${userS} \\`,
+      `  -e PASSWORD=${passS} \\`,
+      `  jumploop/serverstatus:client`,
+    ].join('\n');
+  }
+  return [
+    `wget -qO install.sh --header='Accept: application/vnd.github.raw' \\`,
+    `  'https://api.github.com/repos/jumploop/ServerStatus/contents/clients/install.sh?ref=master'`,
+    `bash install.sh SERVER=${server} PORT=${port} USER=${userS} PASSWORD=${passS}`
+  ].join('\n');
+}
 function activeConfigDef(){
   return CONFIG_TYPES[S.admin.selectedType] || CONFIG_TYPES.servers;
 }
@@ -993,15 +1065,55 @@ function renderConfigEditor(item){
   const current = item || {};
   $('configEditorTitle').textContent = `${editing ? '编辑' : '新增'}${def.label}`;
   $('configEditorHint').textContent = def.hint;
-  $('configFields').innerHTML = def.fields.map(field => fieldHTML(field, current)).join('');
+  $('configFields').innerHTML = def.fields.map(field => fieldHTML(field, current, !editing)).join('');
   const resetTrafficBtn = $('resetTrafficBtn');
   const canResetTraffic = editing && S.admin.selectedType === 'servers';
   resetTrafficBtn.style.display = canResetTraffic ? '' : 'none';
   resetTrafficBtn.disabled = !canResetTraffic || S.admin.saving;
   $('deleteConfigItemBtn').disabled = !editing;
+  renderClientCmd();
 }
-function fieldHTML(field, item){
-  const value = item[field.name] ?? field.default ?? '';
+function renderClientCmd(){
+  const box = $('clientCmd');
+  if(!box) return;
+  if(S.admin.selectedType !== 'servers'){ box.style.display = 'none'; return; }
+  box.style.display = '';
+  box.innerHTML = [
+    '<div class="client-cmd-head">',
+    '<strong>客户端安装命令</strong>',
+    '<button type="button" class="icon-text" id="copyClientCmdBtn" title="复制到剪贴板">复制</button>',
+    '</div>',
+    '<div class="segmented client-cmd-methods" id="clientCmdMethods" role="group" aria-label="安装方式">',
+    '<button type="button" data-method="shell" class="active">Shell</button>',
+    '<button type="button" data-method="compose">Docker Compose</button>',
+    '<button type="button" data-method="run">Docker Run</button>',
+    '</div>',
+    '<label class="client-cmd-addr"><span>服务端地址（客户端 SERVER）</span><input id="clientCmdServer" type="text" spellcheck="false" placeholder="服务器 IP 或域名" /></label>',
+    '<pre class="client-cmd-text" id="clientCmdText"></pre>'
+  ].join('');
+  $('clientCmdServer').value = currentClientServer();
+  document.querySelectorAll('#clientCmdMethods [data-method]').forEach(btn => btn.classList.toggle('active', btn.dataset.method === (S.admin.clientCmdMethod || 'shell')));
+  refreshClientCmd();
+}
+function refreshClientCmd(){
+  const textEl = $('clientCmdText');
+  if(!textEl) return;
+  const form = $('configForm').elements;
+  const user = form.username ? form.username.value.trim() : '';
+  const pass = form.password ? form.password.value : '';
+  textEl.textContent = clientInstallCommand(user, pass);
+}
+function randomToken(len){
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for(let i = 0; i < len; i++) out += chars[bytes[i] % chars.length];
+  return out;
+}
+function fieldHTML(field, item, showDefault){
+  let value = item[field.name];
+  if(value == null && showDefault) value = field.random ? randomToken(field.random) : (field.default ?? '');
   if(field.type === 'checkbox'){
     return `<label class="check-row"><input name="${esc(field.name)}" type="checkbox" ${value ? 'checked' : ''} /> <span>${esc(field.label)}</span></label>`;
   }
@@ -1009,10 +1121,11 @@ function fieldHTML(field, item){
   const min = field.min != null ? ` min="${field.min}"` : '';
   const max = field.max != null ? (field.type === 'number' ? ` max="${field.max}"` : ` maxlength="${field.max}"`) : '';
   const placeholder = field.placeholder ? ` placeholder="${esc(field.placeholder)}"` : '';
+  const autocomplete = field.type === 'password' ? ' autocomplete="new-password"' : ' autocomplete="off"';
   if(field.type === 'textarea'){
-    return `<label class="wide"><span>${esc(field.label)}</span><textarea name="${esc(field.name)}"${required}${placeholder}>${esc(value)}</textarea></label>`;
+    return `<label class="wide"><span>${esc(field.label)}</span><textarea name="${esc(field.name)}"${required}${placeholder}${autocomplete}>${esc(value)}</textarea></label>`;
   }
-  return `<label><span>${esc(field.label)}</span><input name="${esc(field.name)}" type="${field.type || 'text'}" value="${esc(value)}"${required}${min}${max}${placeholder} /></label>`;
+  return `<label><span>${esc(field.label)}</span><input name="${esc(field.name)}" type="${field.type || 'text'}" value="${esc(value)}"${required}${min}${max}${placeholder}${autocomplete} /></label>`;
 }
 function clearConfigForm(){
   S.admin.selectedIndex = -1;
@@ -1021,6 +1134,7 @@ function clearConfigForm(){
 }
 function formConfigItem(){
   const elements = $('configForm').elements;
+  const existing = S.admin.selectedIndex >= 0 ? configItems()[S.admin.selectedIndex] : null;
   const item = {};
   activeConfigDef().fields.forEach(field => {
     const el = elements[field.name];
@@ -1034,10 +1148,13 @@ function formConfigItem(){
       if(!Number.isFinite(value)) value = field.default ?? 0;
       if(field.min != null) value = Math.max(field.min, value);
       if(field.max != null) value = Math.min(field.max, value);
+      if(existing && !(field.name in existing) && el.value === '') return;
       item[field.name] = value;
       return;
     }
-    item[field.name] = field.keepRaw ? el.value : el.value.trim();
+    const value = field.keepRaw ? el.value : el.value.trim();
+    if(existing && !(field.name in existing) && value === '') return;
+    item[field.name] = value;
   });
   return item;
 }
@@ -1051,7 +1168,9 @@ async function saveConfigItem(key, index, item){
   S.admin.saving = true;
   S.suppressStatsReloadUntil = Date.now() + 8000;
   try{
-    const data = await api(configItemPath(key, index), { method: index >= 0 ? 'PUT' : 'POST', body: JSON.stringify(item) });
+    const original = index >= 0 ? configItems()[index] : null;
+    const body = original ? { ...original, ...item } : item;
+    const data = await api(configItemPath(key, index), { method: index >= 0 ? 'PUT' : 'POST', body: JSON.stringify(body) });
     if(data.config) S.admin.config = normalizeAdminConfig(data.config);
     S.suppressStatsReloadUntil = Date.now() + 8000;
     return data;
@@ -1094,12 +1213,20 @@ async function resetServerTraffic(index){
   }
 }
 function bindAdmin(){
-  $('adminToken').value = S.admin.token;
-  $('adminTokenForm').addEventListener('submit', async e => {
+  $('adminLogin').addEventListener('submit', async e => {
     e.preventDefault();
-    S.admin.token = $('adminToken').value.trim();
-    localStorage.setItem('serverstatusAdminToken', S.admin.token);
-    try{ await loadConfig(); }catch(err){ setAdminStatus('认证失败：' + err.message, 'err'); }
+    const username = $('adminUsername').value.trim();
+    const password = $('adminPassword').value;
+    try{
+      await api('/api/login', { method:'POST', body: JSON.stringify({ username, password }) });
+      $('adminPassword').value = '';
+      await loadConfig();
+    }catch(err){ setAdminStatus('登录失败：' + err.message, 'err'); }
+  });
+  $('adminLogout').addEventListener('click', async () => {
+    try{ await api('/api/logout', { method:'POST' }); }catch(_err){}
+    setAdminLoggedIn(false);
+    setAdminStatus('已退出登录。');
   });
   $('refreshConfigBtn').addEventListener('click', async () => { try{ await loadConfig(); }catch(err){ setAdminStatus('刷新失败：' + err.message, 'err'); } });
   $('configTypeTabs').addEventListener('click', e => {
@@ -1126,6 +1253,39 @@ function bindAdmin(){
   });
   $('resetConfigFormBtn').addEventListener('click', clearConfigForm);
   $('resetTrafficBtn').addEventListener('click', () => resetServerTraffic(S.admin.selectedIndex));
+  $('clientCmd').addEventListener('input', e => {
+    if(e.target.id === 'clientCmdServer'){
+      S.admin.clientServer = e.target.value.trim();
+      refreshClientCmd();
+    }
+  });
+  $('clientCmd').addEventListener('click', async e => {
+    const methodBtn = e.target.closest('#clientCmdMethods [data-method]');
+    if(methodBtn){
+      S.admin.clientCmdMethod = methodBtn.dataset.method;
+      document.querySelectorAll('#clientCmdMethods [data-method]').forEach(b => b.classList.toggle('active', b === methodBtn));
+      refreshClientCmd();
+      return;
+    }
+    const btn = e.target.closest('#copyClientCmdBtn');
+    if(!btn) return;
+    const text = $('clientCmdText')?.textContent || '';
+    if(!text) return;
+    try{
+      await navigator.clipboard.writeText(text);
+    }catch(_err){
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    const prev = btn.textContent;
+    btn.textContent = '已复制';
+    setTimeout(() => { btn.textContent = prev; }, 1200);
+  });
+  $('configForm').addEventListener('input', () => { if(S.admin.selectedType === 'servers') refreshClientCmd(); });
   $('adminReload').addEventListener('click', async () => {
     try{ await api('/api/reload', { method:'POST' }); setAdminStatus('配置重载已触发。', 'ok'); }
     catch(err){ setAdminStatus('重载失败：' + err.message, 'err'); }

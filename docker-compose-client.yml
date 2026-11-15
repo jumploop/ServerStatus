@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.client
-    image: cppla/serverstatus:client
+    image: jumploop/serverstatus:client
     container_name: serverstatus-client
     restart: unless-stopped
     network_mode: host

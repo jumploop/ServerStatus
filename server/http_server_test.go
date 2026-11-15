@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"strings"
@@ -128,6 +129,53 @@ func TestHTTPAPIAndStaticUI(t *testing.T) {
 	var persisted map[string]any
 	if err := json.Unmarshal(data, &persisted); err != nil {
 		t.Fatalf("persisted config is invalid: %v", err)
+	}
+}
+
+func TestAdminLoginSession(t *testing.T) {
+	app := newTestApp(t, minimalTestConfig())
+	router := app.router()
+
+	response := performRequest(router, http.MethodPost, "/api/login", `{"username":"admin","password":"wrong"}`, "")
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("wrong password: status=%d body=%s", response.Code, response.Body.String())
+	}
+	response = performRequest(router, http.MethodPost, "/api/login", `{"username":"admin","password":"test-token"}`, "")
+	if response.Code != http.StatusOK {
+		t.Fatalf("login: status=%d body=%s", response.Code, response.Body.String())
+	}
+	var session *http.Cookie
+	for _, cookie := range response.Result().Cookies() {
+		if cookie.Name == sessionCookieName {
+			session = cookie
+		}
+	}
+	if session == nil || session.Value == "" {
+		t.Fatal("login did not set a session cookie")
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	request.AddCookie(session)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("config with session: status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	request = httptest.NewRequest(http.MethodPost, "/api/logout", nil)
+	request.AddCookie(session)
+	recorder = httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("logout: status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	request = httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	request.AddCookie(session)
+	recorder = httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("config after logout: status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 }
 

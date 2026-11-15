@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.server
-    image: cppla/serverstatus:server
+    image: jumploop/serverstatus:server
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/api/health"]
       interval: 30s
@@ -13,6 +13,8 @@ services:
     restart: unless-stopped
     environment:
       ADMIN_TOKEN: "${ADMIN_TOKEN:-}"
+      ADMIN_USERNAME: "${ADMIN_USERNAME:-admin}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:-}"
       HTTP_ADDR: ":80"
       AGENT_ADDR: ":35601"
     volumes:

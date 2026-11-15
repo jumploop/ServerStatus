@@ -6,7 +6,7 @@
     <meta name="description" content="云监控,ServerStatus中文版,ServerStatus,ServerStatus cppla" />
     <title>云监控</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <link rel="stylesheet" href="css/app.css?v=20260812-2" />
+    <link rel="stylesheet" href="css/app.css?v=20261115-1" />
 </head>
 <body>
     <header class="topbar">
@@ -143,44 +143,51 @@
                             <p class="muted">可编辑节点、服务监测、证书与告警规则，保存后自动重载。</p>
                         </div>
                         <div class="section-actions">
-                            <button id="adminReload" class="icon-text">重载配置</button>
+                            <button id="adminLogout" class="icon-text" style="display:none;">退出登录</button>
+                            <button id="adminReload" class="icon-text" style="display:none;">重载配置</button>
                         </div>
                     </div>
                     <div id="adminStatus" class="admin-status">正在检测管理 API...</div>
-                    <form id="adminTokenForm" class="admin-login">
+                    <form id="adminLogin" class="admin-login">
                         <label class="search-field">
-                            <span>管理令牌</span>
-                            <input id="adminToken" type="password" autocomplete="current-password" placeholder="ADMIN_TOKEN" />
+                            <span>用户名</span>
+                            <input id="adminUsername" type="text" autocomplete="username" value="admin" />
                         </label>
-                        <button type="submit" class="primary-btn">连接</button>
+                        <label class="search-field">
+                            <span>密码</span>
+                            <input id="adminPassword" type="password" autocomplete="current-password" placeholder="ADMIN_PASSWORD 或 ADMIN_TOKEN" />
+                        </label>
+                        <button type="submit" class="primary-btn">登录</button>
                     </form>
-                    <div class="segmented config-tabs" id="configTypeTabs" role="group" aria-label="配置类型">
-                        <button type="button" data-type="servers" class="active">节点</button>
-                        <button type="button" data-type="monitors">监测</button>
-                        <button type="button" data-type="sslcerts">证书</button>
-                        <button type="button" data-type="watchdog">告警</button>
+                    <div id="adminConfigUI" style="display:none;">
+                        <div class="segmented config-tabs" id="configTypeTabs" role="group" aria-label="配置类型">
+                            <button type="button" data-type="servers" class="active">节点</button>
+                            <button type="button" data-type="monitors">监测</button>
+                            <button type="button" data-type="sslcerts">证书</button>
+                            <button type="button" data-type="watchdog">告警</button>
+                        </div>
+                        <div class="config-actions">
+                            <button id="addConfigItemBtn" class="primary-btn">新增节点</button>
+                            <button id="refreshConfigBtn" class="icon-text">刷新配置</button>
+                        </div>
+                        <div class="config-list-tools">
+                            <label class="search-field config-search-field">
+                                <span>搜索</span>
+                                <input id="configSearch" type="search" autocomplete="off" aria-controls="configItemList" placeholder="节点名 / 用户名 / 位置 / 主机名" disabled />
+                            </label>
+                            <span id="configSearchCount" class="config-search-count" aria-live="polite"></span>
+                        </div>
+                        <div id="configItemList" class="config-list"></div>
                     </div>
-                    <div class="config-actions">
-                        <button id="addConfigItemBtn" class="primary-btn">新增节点</button>
-                        <button id="refreshConfigBtn" class="icon-text">刷新配置</button>
-                    </div>
-                    <div class="config-list-tools">
-                        <label class="search-field config-search-field">
-                            <span>搜索</span>
-                            <input id="configSearch" type="search" autocomplete="off" aria-controls="configItemList" placeholder="节点名 / 用户名 / 位置 / 主机名" disabled />
-                        </label>
-                        <span id="configSearchCount" class="config-search-count" aria-live="polite"></span>
-                    </div>
-                    <div id="configItemList" class="config-list"></div>
                 </section>
-                <section id="configEditorCard" class="admin-card config-editor-card">
+                <section id="configEditorCard" class="admin-card config-editor-card" style="display:none;">
                     <div class="section-head">
                         <div>
                             <h2 id="configEditorTitle">新增节点</h2>
                             <p class="muted" id="configEditorHint">保存后会写入 config.json，并由服务热重载。</p>
                         </div>
                     </div>
-                    <form id="configForm" class="config-form">
+                    <form id="configForm" class="config-form" autocomplete="off">
                         <div id="configFields" class="config-fields"></div>
                         <div class="form-actions">
                             <button type="submit" class="primary-btn">保存配置</button>
@@ -189,6 +196,7 @@
                             <button type="button" id="resetConfigFormBtn" class="icon-text">清空</button>
                         </div>
                     </form>
+                    <div id="clientCmd" class="client-cmd" style="display:none;"></div>
                 </section>
             </div>
         </section>
@@ -204,9 +212,9 @@
     </div>
 
     <footer class="footer">
-        <a href="https://github.com/cppla/ServerStatus" target="_blank" rel="noopener">ServerStatus中文版</a>
+        <a href="https://github.com/jumploop/ServerStatus" target="_blank" rel="noopener">ServerStatus中文版</a>
     </footer>
 
-    <script src="js/app.js?v=20260812-4" defer></script>
+    <script src="js/app.js?v=20261115-1" defer></script>
 </body>
 </html>

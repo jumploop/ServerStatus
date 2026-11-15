@@ -144,9 +144,9 @@ test('theme choice persists after reload', async ({ page }) => {
 test('configuration page creates, updates and deletes a node through the real API', async ({ page }) => {
   await page.locator('#navTabs button[data-tab="config"]').click();
   await expect(page.locator('#adminStatus')).toContainText('管理 API 已启用');
-  await page.locator('#adminToken').fill('test-token');
-  await page.locator('#adminTokenForm button[type="submit"]').click();
-  await expect(page.locator('#adminStatus')).toContainText('已连接管理 API');
+  await page.locator('#adminPassword').fill('test-token');
+  await page.locator('#adminLogin button[type="submit"]').click();
+  await expect(page.locator('#adminStatus')).toContainText('已登录管理 API');
 
   await page.locator('#configForm [name="username"]').fill('web-e2e');
   await page.locator('#configForm [name="name"]').fill('web-e2e-node');

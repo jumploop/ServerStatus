@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +23,11 @@ var (
 	version   = "2.0.0"
 	commit    = "none"
 	buildTime = "unknown"
+)
+
+const (
+	sessionCookieName = "serverstatus_session"
+	sessionTTL        = 12 * time.Hour
 )
 
 func (a *App) HTTPServer() *http.Server {
@@ -54,6 +61,8 @@ func (a *App) router() *gin.Engine {
 		c.Header("Cache-Control", "no-store")
 		c.JSON(http.StatusOK, a.SnapshotStats())
 	})
+	router.POST("/api/login", a.loginHandler)
+	router.POST("/api/logout", a.logoutHandler)
 
 	api := router.Group("/api", a.authMiddleware())
 	api.GET("/config", func(c *gin.Context) {
@@ -135,6 +144,10 @@ func (a *App) authMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		if a.hasValidSession(c) {
+			c.Next()
+			return
+		}
 		token := ""
 		authorization := c.GetHeader("Authorization")
 		if len(authorization) >= 7 && strings.EqualFold(authorization[:7], "bearer ") {
@@ -150,6 +163,75 @@ func (a *App) authMiddleware() gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func (a *App) hasValidSession(c *gin.Context) bool {
+	value, err := c.Cookie(sessionCookieName)
+	if err != nil || value == "" {
+		return false
+	}
+	a.sessionMu.Lock()
+	defer a.sessionMu.Unlock()
+	expires, ok := a.sessions[value]
+	if !ok {
+		return false
+	}
+	if time.Now().After(expires) {
+		delete(a.sessions, value)
+		return false
+	}
+	return true
+}
+
+func (a *App) loginHandler(c *gin.Context) {
+	if a.opts.AdminToken == "" {
+		a.writeAPIError(c, &APIError{Status: 503, Message: "management API is disabled; set ADMIN_TOKEN to enable it"})
+		return
+	}
+	var credentials struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxRequestBody)
+	if err := json.NewDecoder(c.Request.Body).Decode(&credentials); err != nil {
+		a.writeAPIError(c, &APIError{Status: 400, Message: "invalid JSON body"})
+		return
+	}
+	usernameMatch := subtle.ConstantTimeCompare([]byte(credentials.Username), []byte(a.opts.AdminUsername)) == 1
+	passwordMatch := subtle.ConstantTimeCompare([]byte(credentials.Password), []byte(a.opts.AdminPassword)) == 1
+	if !usernameMatch || !passwordMatch {
+		a.writeAPIError(c, &APIError{Status: 401, Message: "invalid username or password"})
+		return
+	}
+	session := make([]byte, 32)
+	if _, err := rand.Read(session); err != nil {
+		a.writeAPIError(c, &APIError{Status: 500, Message: "could not create session"})
+		return
+	}
+	value := hex.EncodeToString(session)
+	now := time.Now()
+	a.sessionMu.Lock()
+	for key, expires := range a.sessions {
+		if now.After(expires) {
+			delete(a.sessions, key)
+		}
+	}
+	a.sessions[value] = now.Add(sessionTTL)
+	a.sessionMu.Unlock()
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(sessionCookieName, value, int(sessionTTL.Seconds()), "/", "", c.Request.TLS != nil, true)
+	c.JSON(http.StatusOK, gin.H{"ok": true, "username": a.opts.AdminUsername})
+}
+
+func (a *App) logoutHandler(c *gin.Context) {
+	if value, err := c.Cookie(sessionCookieName); err == nil && value != "" {
+		a.sessionMu.Lock()
+		delete(a.sessions, value)
+		a.sessionMu.Unlock()
+	}
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie(sessionCookieName, "", -1, "/", "", c.Request.TLS != nil, true)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func (a *App) healthHandler(c *gin.Context) {
@@ -171,6 +253,8 @@ func apiSchema(enabled bool) map[string]any {
 		map[string]any{"method": "GET", "path": "/api/health", "auth": false},
 		map[string]any{"method": "GET", "path": "/api/schema", "auth": false},
 		map[string]any{"method": "GET", "path": "/api/openapi.json", "auth": false},
+		map[string]any{"method": "POST", "path": "/api/login", "auth": false, "body": "username and password"},
+		map[string]any{"method": "POST", "path": "/api/logout", "auth": false},
 		map[string]any{"method": "GET", "path": "/api/config", "auth": true},
 		map[string]any{"method": "PUT", "path": "/api/config", "auth": true, "body": "full config JSON"},
 	}
@@ -193,8 +277,11 @@ func apiSchema(enabled bool) map[string]any {
 		collections[key] = map[string]any{"item": spec.itemName, "idField": spec.idField, "required": spec.required, "optional": spec.optional}
 	}
 	return map[string]any{
-		"version":   version,
-		"auth":      map[string]any{"type": "bearer", "header": "Authorization: Bearer <ADMIN_TOKEN>", "enabled": enabled},
+		"version": version,
+		"auth": map[string]any{
+			"type": "bearer", "header": "Authorization: Bearer <ADMIN_TOKEN>", "enabled": enabled,
+			"login": map[string]any{"path": "/api/login", "session": sessionCookieName},
+		},
 		"endpoints": endpoints, "collections": collections,
 	}
 }
